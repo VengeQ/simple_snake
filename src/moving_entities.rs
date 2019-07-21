@@ -1,0 +1,105 @@
+use crate::moving::Direction;
+use crate::moving::Moving;
+
+//TODO убрать pub, по человечески разделить ответственность методов
+pub struct Cube {
+    direction: Direction,
+    next_direction: Direction,
+    position: (i32, i32),
+    prev_direction: Direction,
+}
+
+impl Cube {
+    pub fn new(direction: Direction) -> Self {
+        Cube {
+            direction,
+            next_direction: direction,
+            position: (0, 0),
+            prev_direction: Direction::NotMove,
+        }
+    }
+    pub fn set_new_position_if_border(&mut self, max: i32) -> () {
+        match &self.direction {
+            &Direction::Top if self.position.1 < 0 => self.position = (self.position.0, max),
+            &Direction::Bot if self.position.1 > max => self.position = (self.position.0, 0),
+            &Direction::Left if self.position.0 < 0 => self.position = (max, self.position.1),
+            &Direction::Right if self.position.0 > max => self.position = (0, self.position.1),
+            _ => ()
+        }
+    }
+    pub fn from_position(position: (i32, i32)) -> Self {
+        Cube {
+            direction: Direction::NotMove,
+            next_direction: Direction::NotMove,
+            position,
+            prev_direction: Direction::NotMove,
+        }
+    }
+    pub fn get_position(&self) -> ((i32, i32)) {
+        self.position
+    }
+
+    pub fn consume_another_cube(&self, another: &Cube) -> bool {
+        if self.position == another.position { true } else { false }
+    }
+}
+
+impl Moving for Cube {
+    fn move_in_direction(&mut self) {
+        let step = crate::BASE_SIZE;
+        if &self.position.0 % crate::BASE_SIZE as i32 == 0 {
+            match self.next_direction {
+                Direction::Top | Direction::Bot | Direction::NotMove => self.direction = self.next_direction,
+                _ => ()
+            }
+        }
+        if &self.position.1 % crate::BASE_SIZE as i32 == 0 {
+            match self.next_direction {
+                Direction::Left | Direction::Right | Direction::NotMove => self.direction = self.next_direction,
+                _ => ()
+            }
+        }
+        //движение, step - прорисовывает каждые step пикселей
+        // Так можно регулировать скорость, возможно лучше в `running loop - я пока не понял еще.
+        match self.direction {
+            Direction::Bot => {
+                self.position = (self.position.0, self.position.1 + (crate::FIELD / step) as i32)
+            }
+            Direction::Top => {
+                self.position = (self.position.0, self.position.1 - (crate::FIELD / step) as i32)
+            }
+            Direction::Left => {
+                self.position = (self.position.0 - (crate::FIELD / step) as i32, self.position.1)
+            }
+            Direction::Right => {
+                self.position = (self.position.0 + (crate::FIELD / step) as i32, self.position.1)
+            }
+            Direction::NotMove => self.next_direction = Direction::NotMove
+        };
+    }
+
+    //Выставить текущую позицию
+    fn set_position(&mut self, new_position: (i32, i32)) {
+        self.position = new_position;
+    }
+    //Установить следующее направление движения
+    fn change_direction(&mut self, new_direction: Direction) {
+        match new_direction {
+            Direction::Right => if self.direction != Direction::Left && self.direction != Direction::NotMove { self.next_direction = new_direction },
+            Direction::Left => if self.direction != Direction::Right && self.direction != Direction::NotMove { self.next_direction = new_direction }
+            Direction::Bot => if self.direction != Direction::Top && self.direction != Direction::NotMove { self.next_direction = new_direction }
+            Direction::Top => if self.direction != Direction::Bot && self.direction != Direction::NotMove { self.next_direction = new_direction }
+            Direction::NotMove => { self.next_direction = new_direction }  //??
+        }
+    }
+
+    fn pause(&mut self) {
+        if self.direction == Direction::NotMove {
+            self.next_direction = self.prev_direction
+        } else {
+            self.prev_direction = self.direction;
+            self.next_direction = Direction::NotMove;
+        }
+    }
+}
+

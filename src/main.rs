@@ -6,6 +6,13 @@ extern crate sdl2;
 
 use gfx::Device;
 
+mod moving;
+mod moving_entities;
+
+use crate::moving::Moving;
+use crate::moving::Direction;
+use crate::moving_entities::Cube;
+
 
 use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
 use sdl2::event::Event;
@@ -18,6 +25,7 @@ use rand::Rng;
 use sdl2::render::{TextureCreator, Texture, Canvas, TextureAccess};
 use sdl2::rect::Rect;
 use sdl2::video::{Window, WindowContext};
+use std::fs::DirEntry;
 
 
 #[derive(Clone, Copy)]
@@ -29,9 +37,16 @@ enum TextureColor {
     White,
 }
 
+const WIDTH: u32 = 600;
+//количество полей
+const FIELD: u32 = 20;
+const HEIGHT: u32 = 800;
+//размер "квадратика
 const BASE_SIZE: u32 = 20;
-const L_SIZE: u32 = (600 - BASE_SIZE * 20) / 2;
-const BORDER_HEIGTH: u32 = 800 - BASE_SIZE * 20 + L_SIZE + 150;
+//отступ по краям
+const L_SIZE: u32 = (600 - BASE_SIZE * FIELD) / 2;
+// расстояние между гридом и граничкой
+const BORDER_HEIGHT: u32 = 800 - BASE_SIZE * FIELD + L_SIZE;
 
 fn create_texture_rect<'a>(canvas: &mut Canvas<Window>, texture_creator: &'a TextureCreator<WindowContext>, color: TextureColor, size: u32) -> Option<Texture<'a>> {
     if let Ok(mut square_texture) =
@@ -57,7 +72,7 @@ pub fn main() {
     let rng = rand::thread_rng();
     let sdl_context = sdl2::init().expect("SDL initialization failed");
     let video_subsystem = sdl_context.video().expect("Couldn't get SDL video subsystem");
-    let window = video_subsystem.window("rust-sdl2 demo: Snake", 600, 800)
+    let window = video_subsystem.window("rust-sdl2 demo: Snake", WIDTH, HEIGHT)
         .position_centered()
         .vulkan()
         .build()
@@ -66,7 +81,7 @@ pub fn main() {
 
     let grid_left = L_SIZE;
     let grid_right = L_SIZE;
-    let grid_top = 800 - (BASE_SIZE * 20 + L_SIZE);
+    let grid_top = HEIGHT - (BASE_SIZE * FIELD + L_SIZE);
     let grid_bottom = L_SIZE;
 
     let mut canvas = window.into_canvas()
@@ -76,18 +91,17 @@ pub fn main() {
         .expect("Failed to convert window into canvas");
 
     let creator: TextureCreator<_> = canvas.texture_creator();
-    let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * 20).expect("Failed to create a texture");
-    let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * 20 + L_SIZE).expect("Failed to create a texture");
-    let mut t = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
+    let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
+    let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
+    let mut point = Cube::from_position(random_position_in_grid(rng));
     let mut cube = Cube::new(Direction::Bot);
-    let mut snake = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
-
+    let mut snake_point = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
+    let mut point_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Blue, BASE_SIZE).expect("Failed to create a texture");
     canvas.set_draw_color(Color::RGB(255, 0, 0));
 
     let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
-
-    let mut counter = 0;
+    let mut counter_loop = 0;
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -96,47 +110,53 @@ pub fn main() {
                     {
                         break 'running;
                     }
-                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
-                    cube.set_direction(Direction::Top)
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } | Event::KeyDown { keycode: Some(Keycode::W), .. } => {
+                    { cube.change_direction(Direction::Top) }
                 }
-                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
-                    cube.set_direction(Direction::Bot)
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } | Event::KeyDown { keycode: Some(Keycode::S), .. } => {
+                    { cube.change_direction(Direction::Bot) }
                 }
-                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
-                    cube.set_direction(Direction::Left)
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } | Event::KeyDown { keycode: Some(Keycode::A), .. } => {
+                    { cube.change_direction(Direction::Left) }
                 }
-                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
-                    cube.set_direction(Direction::Right)
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } | Event::KeyDown { keycode: Some(Keycode::D), .. } => {
+                    { cube.change_direction(Direction::Right) }
+                }
+                Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
+                    cube.pause();
                 }
                 Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } =>
                     {
-                        new_color(&mut t, &mut canvas, rng);
                         canvas.set_draw_color(rand_color(rng));
                     }
                 _ => {}
             }
         }
-        // We set fulfill our window with red.
-        let cur_width = canvas.window().size().0 as i32;
-        let cur_height = canvas.window().size().1 as i32;
 
+
+        if cube.consume_another_cube(&point) {
+            println!("point!");
+            counter_loop+=1;
+        };
+
+        counter_loop += 1;
+        if counter_loop >=360 {
+            point.set_position(random_position_in_grid(rng));
+            counter_loop=0;
+        }
+
+        Cube::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
+        //Новое положение кубика, скорость опеределена числом
+        for i in 0..5 {
+            cube.move_in_direction();
+        }
 
         // We draw it.
         canvas.clear();
-
-        counter += 1;
-
-        if counter >= 5 {
-            counter = 0;
-            println!("{:?}",cube.position);
-            cube.move_in_direction(cube.direction.clone());
-            Cube::set_new_position_if_border(&mut cube, 20 * (BASE_SIZE - 1) as i32);
-        }
-
-        canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (800 - BORDER_HEIGTH - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * 20, BORDER_HEIGTH)).unwrap();
-
-        canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (800 - (L_SIZE + BASE_SIZE * 20)) as i32, BASE_SIZE * 20, BASE_SIZE * 20)).unwrap();
-        canvas.copy(&snake, None, Rect::new(cube.position.0 + grid_left as i32, cube.position.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
+        canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
+        canvas.copy(&snake_point, None, Rect::new(cube.get_position().0 + grid_left as i32, cube.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        canvas.copy(&point_texture, None, Rect::new(point.get_position().0  + grid_left as i32, point.get_position().1  + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         canvas.present();
         //60 FPS
         sleep(Duration::new(0, 1_000_000_000u32 / 60));
@@ -146,11 +166,6 @@ pub fn main() {
 
 fn rand_color(mut rng: ThreadRng) -> sdl2::pixels::Color {
     Color::RGB(rng.gen(), rng.gen(), rng.gen())
-}
-
-fn new_color_for_texture(te: &mut Canvas<Window>, rng: ThreadRng) {
-    te.set_draw_color(rand_color(rng));
-    te.clear();
 }
 
 fn new_color(t: &mut Texture, c: &mut Canvas<Window>, rng: ThreadRng) {
@@ -167,64 +182,11 @@ struct Snake {
 
 }
 
-trait Moving {
-    fn move_in_direction(&mut self, direction: Direction);
-    fn set_position(&mut self, position: (i32, i32));
-    fn set_direction(&mut self, new_direction: Direction);
-}
 
+//fn handle_events
 
-struct Cube {
-    direction: Direction,
-    position: (i32, i32),
-}
-
-impl Cube {
-    fn new(direction: Direction) -> Self {
-        Cube {
-            direction,
-            position: (0, 0),
-        }
-    }
-    fn set_new_position_if_border(&mut self, max: i32) -> () {
-        match &self.direction {
-            &Direction::Top if self.position.1 < 0 => self.position = (self.position.0, max),
-            &Direction::Bot if self.position.1 > max => self.position = (self.position.0, 0),
-            &Direction::Left if self.position.0 < 0 => self.position = (max, self.position.1),
-            &Direction::Bot if self.position.0> max => self.position = (0, self.position.1),
-            _ => ()
-        }
-    }
-
-}
-
-impl Moving for Cube {
-    fn move_in_direction(&mut self, direction: Direction) {
-        match direction {
-            Direction::Bot => self.position = (self.position.0, self.position.1 + BASE_SIZE as i32),
-            Direction::Top => self.position = (self.position.0, self.position.1 - BASE_SIZE as i32),
-            Direction::Left => self.position = (self.position.0 - BASE_SIZE as i32, self.position.1 ),
-            Direction::Right => self.position = (self.position.0+ BASE_SIZE as i32, self.position.1),
-            _ => {}
-        };
-    }
-    fn set_position(&mut self, new_position: (i32, i32)) {
-        self.position = new_position;
-    }
-    fn set_direction(&mut self, new_direction: Direction) {
-        self.direction = new_direction;
-    }
-}
-
-#[derive(Clone)]
-enum Direction {
-    Bot,
-    Top,
-    Left,
-    Right,
-    NotMove
-}
-
-trait Hello{
-
+fn random_position_in_grid(mut rng: ThreadRng) -> (i32, i32) {
+    let x =rng.gen_range(0,  (BASE_SIZE - 1))*FIELD;
+    let y =rng.gen_range(0,  (BASE_SIZE - 1))*FIELD;
+    (x as i32, y as i32)
 }
