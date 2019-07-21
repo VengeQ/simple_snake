@@ -47,15 +47,22 @@ impl Cube {
 impl Moving for Cube {
     fn move_in_direction(&mut self) {
         let step = crate::BASE_SIZE;
+        if &self.position.1 % crate::BASE_SIZE as i32 ==0 && &self.position.0 % crate::BASE_SIZE as i32 == 0 {
+            println!("{:?}",self.position);
+            match self.next_direction {
+                Direction::NotMove  => self.direction = self.next_direction,
+                _ => ()
+            }
+        }
         if &self.position.0 % crate::BASE_SIZE as i32 == 0 {
             match self.next_direction {
-                Direction::Top | Direction::Bot | Direction::NotMove => self.direction = self.next_direction,
+                Direction::Top | Direction::Bot  => self.direction = self.next_direction,
                 _ => ()
             }
         }
         if &self.position.1 % crate::BASE_SIZE as i32 == 0 {
             match self.next_direction {
-                Direction::Left | Direction::Right | Direction::NotMove => self.direction = self.next_direction,
+                Direction::Left | Direction::Right  => self.direction = self.next_direction,
                 _ => ()
             }
         }
@@ -74,7 +81,7 @@ impl Moving for Cube {
             Direction::Right => {
                 self.position = (self.position.0 + (crate::FIELD / step) as i32, self.position.1)
             }
-            Direction::NotMove => self.next_direction = Direction::NotMove
+            Direction::NotMove => if self.position.0 % crate::FIELD as i32 ==0 && self.position.0 % crate::FIELD as i32 ==0 { self.direction = Direction::NotMove}
         };
     }
 

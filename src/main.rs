@@ -134,20 +134,19 @@ pub fn main() {
         }
 
 
-        if cube.consume_another_cube(&point) {
-            println!("point!");
-            counter_loop+=1;
-        };
-
-        counter_loop += 1;
-        if counter_loop >=360 {
+        //counter_loop += 1;
+        if counter_loop >= 360 {
             point.set_position(random_position_in_grid(rng));
-            counter_loop=0;
+            counter_loop = 0;
         }
 
         Cube::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
         //Новое положение кубика, скорость опеределена числом
-        for i in 0..5 {
+        for i in 0..7 {
+            if cube.consume_another_cube(&point) {
+                println!("point!");
+                counter_loop = 360;
+            };
             cube.move_in_direction();
         }
 
@@ -156,7 +155,7 @@ pub fn main() {
         canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
         canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
         canvas.copy(&snake_point, None, Rect::new(cube.get_position().0 + grid_left as i32, cube.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-        canvas.copy(&point_texture, None, Rect::new(point.get_position().0  + grid_left as i32, point.get_position().1  + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        canvas.copy(&point_texture, None, Rect::new(point.get_position().0 + grid_left as i32, point.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         canvas.present();
         //60 FPS
         sleep(Duration::new(0, 1_000_000_000u32 / 60));
@@ -186,7 +185,7 @@ struct Snake {
 //fn handle_events
 
 fn random_position_in_grid(mut rng: ThreadRng) -> (i32, i32) {
-    let x =rng.gen_range(0,  (BASE_SIZE - 1))*FIELD;
-    let y =rng.gen_range(0,  (BASE_SIZE - 1))*FIELD;
+    let x = rng.gen_range(0, (BASE_SIZE - 1)) * FIELD;
+    let y = rng.gen_range(0, (BASE_SIZE - 1)) * FIELD;
     (x as i32, y as i32)
 }
