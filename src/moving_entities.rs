@@ -1,7 +1,7 @@
 use crate::moving::Direction;
 use crate::moving::Moving;
 
-//TODO убрать pub, по человечески разделить ответственность методов
+#[derive(Debug)]
 pub struct Cube {
     direction: Direction,
     next_direction: Direction,
@@ -45,10 +45,10 @@ impl Cube {
 }
 
 impl Moving for Cube {
+
     fn move_in_direction(&mut self) {
         let step = crate::BASE_SIZE;
         if &self.position.1 % crate::BASE_SIZE as i32 ==0 && &self.position.0 % crate::BASE_SIZE as i32 == 0 {
-            println!("{:?}",self.position);
             match self.next_direction {
                 Direction::NotMove  => self.direction = self.next_direction,
                 _ => ()
@@ -70,18 +70,18 @@ impl Moving for Cube {
         // Так можно регулировать скорость, возможно лучше в `running loop - я пока не понял еще.
         match self.direction {
             Direction::Bot => {
-                self.position = (self.position.0, self.position.1 + (crate::FIELD / step) as i32)
+                self.position = (self.position.0, self.position.1 + (crate::BASE_SIZE / step) as i32)
             }
             Direction::Top => {
-                self.position = (self.position.0, self.position.1 - (crate::FIELD / step) as i32)
+                self.position = (self.position.0, self.position.1 - (crate::BASE_SIZE / step) as i32)
             }
             Direction::Left => {
-                self.position = (self.position.0 - (crate::FIELD / step) as i32, self.position.1)
+                self.position = (self.position.0 - (crate::BASE_SIZE / step) as i32, self.position.1)
             }
             Direction::Right => {
-                self.position = (self.position.0 + (crate::FIELD / step) as i32, self.position.1)
+                self.position = (self.position.0 + (crate::BASE_SIZE / step) as i32, self.position.1)
             }
-            Direction::NotMove => if self.position.0 % crate::FIELD as i32 ==0 && self.position.0 % crate::FIELD as i32 ==0 { self.direction = Direction::NotMove}
+            Direction::NotMove => if self.position.0 % crate::BASE_SIZE as i32 ==0 && self.position.0 % crate::FIELD as i32 ==0 { self.direction = Direction::NotMove}
         };
     }
 

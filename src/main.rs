@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate log;
+extern crate log4rs;
+
 extern crate libc;
 extern crate sdl2_sys;
 extern crate gfx;
@@ -46,7 +50,7 @@ const BASE_SIZE: u32 = 20;
 //отступ по краям
 const L_SIZE: u32 = (600 - BASE_SIZE * FIELD) / 2;
 // расстояние между гридом и граничкой
-const BORDER_HEIGHT: u32 = 800 - BASE_SIZE * FIELD + L_SIZE;
+const BORDER_HEIGHT: u32 = 650;
 
 fn create_texture_rect<'a>(canvas: &mut Canvas<Window>, texture_creator: &'a TextureCreator<WindowContext>, color: TextureColor, size: u32) -> Option<Texture<'a>> {
     if let Ok(mut square_texture) =
@@ -69,6 +73,9 @@ fn create_texture_rect<'a>(canvas: &mut Canvas<Window>, texture_creator: &'a Tex
 }
 
 pub fn main() {
+    log4rs::init_file("config/log4rs.yaml", Default::default()).expect("File not found or can't be read");
+    info!("Logger is ready");
+
     let rng = rand::thread_rng();
     let sdl_context = sdl2::init().expect("SDL initialization failed");
     let video_subsystem = sdl_context.video().expect("Couldn't get SDL video subsystem");
@@ -83,6 +90,9 @@ pub fn main() {
     let grid_right = L_SIZE;
     let grid_top = HEIGHT - (BASE_SIZE * FIELD + L_SIZE);
     let grid_bottom = L_SIZE;
+
+    info!("Grid values:\n\tleft:{}\n\tright:{}\n\ttop:{}\n\tbottom:{}", grid_left, grid_right, grid_top, grid_bottom);
+
 
     let mut canvas = window.into_canvas()
         .target_texture()
@@ -134,8 +144,8 @@ pub fn main() {
         }
 
 
-        //counter_loop += 1;
-        if counter_loop >= 360 {
+        counter_loop += 1;
+        if counter_loop >= 120 {
             point.set_position(random_position_in_grid(rng));
             counter_loop = 0;
         }
@@ -144,9 +154,10 @@ pub fn main() {
         //Новое положение кубика, скорость опеределена числом
         for i in 0..7 {
             if cube.consume_another_cube(&point) {
-                println!("point!");
+                info!("point!");
                 counter_loop = 360;
             };
+            debug!("cube_pos:{:?}", cube.get_position());
             cube.move_in_direction();
         }
 
@@ -174,18 +185,16 @@ fn new_color(t: &mut Texture, c: &mut Canvas<Window>, rng: ThreadRng) {
     }).unwrap()
 }
 
-
 struct Snake {
     length: i16,
     direction: Direction,
 
 }
-
-
 //fn handle_events
 
 fn random_position_in_grid(mut rng: ThreadRng) -> (i32, i32) {
-    let x = rng.gen_range(0, (BASE_SIZE - 1)) * FIELD;
-    let y = rng.gen_range(0, (BASE_SIZE - 1)) * FIELD;
+    let x = rng.gen_range(0, (FIELD - 1)) * BASE_SIZE;
+    let y = rng.gen_range(0, (FIELD - 1)) * BASE_SIZE;
+    info!("pos:{:?}", (x as i32, y as i32));
     (x as i32, y as i32)
 }
