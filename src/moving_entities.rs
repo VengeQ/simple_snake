@@ -1,6 +1,7 @@
 use crate::moving::Direction;
 use crate::moving::Moving;
 
+///simple square
 #[derive(Debug)]
 pub struct Cube {
     direction: Direction,
@@ -10,6 +11,7 @@ pub struct Cube {
 }
 
 impl Cube {
+    ///Create new square with custom direction in top left corner
     pub fn new(direction: Direction) -> Self {
         Cube {
             direction,
@@ -18,15 +20,16 @@ impl Cube {
             prev_direction: Direction::NotMove,
         }
     }
-    pub fn set_new_position_if_border(&mut self, max: i32) -> () {
-        match &self.direction {
-            &Direction::Top if self.position.1 < 0 => self.position = (self.position.0, max),
-            &Direction::Bot if self.position.1 > max => self.position = (self.position.0, 0),
-            &Direction::Left if self.position.0 < 0 => self.position = (max, self.position.1),
-            &Direction::Right if self.position.0 > max => self.position = (0, self.position.1),
+    pub fn set_new_position_if_border(&mut self, max: i32) {
+        match self.direction {
+            Direction::Top if self.position.1 < 0 => self.position = (self.position.0, max),
+            Direction::Bot if self.position.1 > max => self.position = (self.position.0, 0),
+            Direction::Left if self.position.0 < 0 => self.position = (max, self.position.1),
+            Direction::Right if self.position.0 > max => self.position = (0, self.position.1),
             _ => ()
         }
     }
+    ///Create not moving square with random position on grid
     pub fn from_position(position: (i32, i32)) -> Self {
         Cube {
             direction: Direction::NotMove,
@@ -35,34 +38,33 @@ impl Cube {
             prev_direction: Direction::NotMove,
         }
     }
+
+    ///return postion of square as tuple(horizontal, vertical)
     pub fn get_position(&self) -> ((i32, i32)) {
         self.position
     }
 
+    ///Do something when consume another square. May be this should be in Trait Moving
     pub fn consume_another_cube(&self, another: &Cube) -> bool {
-        if self.position == another.position { true } else { false }
+        self.position == another.position
     }
 }
 
 impl Moving for Cube {
-
     fn move_in_direction(&mut self) {
         let step = crate::BASE_SIZE;
-        if &self.position.1 % crate::BASE_SIZE as i32 ==0 && &self.position.0 % crate::BASE_SIZE as i32 == 0 {
+        if self.position.1 % crate::BASE_SIZE as i32 == 0 && self.position.0 % crate::BASE_SIZE as i32 == 0 {
+            if let Direction::NotMove = self.next_direction { self.direction = self.next_direction }
+        }
+        if self.position.0 % crate::BASE_SIZE as i32 == 0 {
             match self.next_direction {
-                Direction::NotMove  => self.direction = self.next_direction,
+                Direction::Top | Direction::Bot => self.direction = self.next_direction,
                 _ => ()
             }
         }
-        if &self.position.0 % crate::BASE_SIZE as i32 == 0 {
+        if self.position.1 % crate::BASE_SIZE as i32 == 0 {
             match self.next_direction {
-                Direction::Top | Direction::Bot  => self.direction = self.next_direction,
-                _ => ()
-            }
-        }
-        if &self.position.1 % crate::BASE_SIZE as i32 == 0 {
-            match self.next_direction {
-                Direction::Left | Direction::Right  => self.direction = self.next_direction,
+                Direction::Left | Direction::Right => self.direction = self.next_direction,
                 _ => ()
             }
         }
@@ -81,7 +83,7 @@ impl Moving for Cube {
             Direction::Right => {
                 self.position = (self.position.0 + (crate::BASE_SIZE / step) as i32, self.position.1)
             }
-            Direction::NotMove => if self.position.0 % crate::BASE_SIZE as i32 ==0 && self.position.0 % crate::FIELD as i32 ==0 { self.direction = Direction::NotMove}
+            Direction::NotMove => if self.position.0 % crate::BASE_SIZE as i32 == 0 && self.position.0 % crate::FIELD as i32 == 0 { self.direction = Direction::NotMove }
         };
     }
 

@@ -4,42 +4,27 @@ extern crate log4rs;
 
 extern crate libc;
 extern crate sdl2_sys;
-extern crate gfx;
-extern crate gfx_window_sdl;
 extern crate sdl2;
-
-use gfx::Device;
 
 mod moving;
 mod moving_entities;
+mod helpers;
+mod snake;
 
 use crate::moving::Moving;
 use crate::moving::Direction;
 use crate::moving_entities::Cube;
 
-
-use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
+use sdl2::pixels::{Color};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::thread::sleep;
 use sdl2::mouse::MouseButton;
-use rand::rngs::ThreadRng;
-use rand::Rng;
-use sdl2::render::{TextureCreator, Texture, Canvas, TextureAccess};
+use sdl2::render::{TextureCreator};
 use sdl2::rect::Rect;
-use sdl2::video::{Window, WindowContext};
-use std::fs::DirEntry;
-
-
-#[derive(Clone, Copy)]
-enum TextureColor {
-    Green,
-    Blue,
-    Red,
-    Black,
-    White,
-}
+use helpers::*;
+use crate::snake::Snake;
 
 const WIDTH: u32 = 600;
 //количество полей
@@ -52,25 +37,11 @@ const L_SIZE: u32 = (600 - BASE_SIZE * FIELD) / 2;
 // расстояние между гридом и граничкой
 const BORDER_HEIGHT: u32 = 650;
 
-fn create_texture_rect<'a>(canvas: &mut Canvas<Window>, texture_creator: &'a TextureCreator<WindowContext>, color: TextureColor, size: u32) -> Option<Texture<'a>> {
-    if let Ok(mut square_texture) =
-    texture_creator.create_texture_target(None, size, size) {
-        canvas.with_texture_canvas(&mut square_texture, |texture| {
-            match color {
-                TextureColor::Green => texture.set_draw_color(Color::RGB(0, 255, 0)),
-                TextureColor::Blue => texture.set_draw_color(Color::RGB(0, 0, 255)),
-                TextureColor::Red => texture.set_draw_color(Color::RGB(255, 0, 0)),
-                TextureColor::Black => texture.set_draw_color(Color::RGB(0, 0, 0)),
-                TextureColor::White => texture.set_draw_color(Color::RGB(255, 255, 255)),
-            }
-            texture.clear();
-        }).expect("Failed to color a texture");
-        Some(square_texture)
-    } else {
-        // An error occured so we return nothing and let the function caller handle the error.
-        None
-    }
-}
+macro_rules! texture {
+        ($r:expr, $g:expr, $b:expr) => (
+            create_texture_rect(&mut canvas, &texture_creator, TextureColor::Green, BASE_SIZE as u32).unwrap()
+        )
+      }
 
 pub fn main() {
     log4rs::init_file("config/log4rs.yaml", Default::default()).expect("File not found or can't be read");
@@ -85,14 +56,11 @@ pub fn main() {
         .build()
         .expect("Failed to create window");
 
-
     let grid_left = L_SIZE;
     let grid_right = L_SIZE;
     let grid_top = HEIGHT - (BASE_SIZE * FIELD + L_SIZE);
     let grid_bottom = L_SIZE;
-
     info!("Grid values:\n\tleft:{}\n\tright:{}\n\ttop:{}\n\tbottom:{}", grid_left, grid_right, grid_top, grid_bottom);
-
 
     let mut canvas = window.into_canvas()
         .target_texture()
@@ -105,9 +73,13 @@ pub fn main() {
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
     let mut point = Cube::from_position(random_position_in_grid(rng));
+    let test_snake =Snake::from_position((2,2),vec![(2,3),(2,4)]);
+    //let test_snake_textures =
     let mut cube = Cube::new(Direction::Bot);
-    let mut snake_point = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
-    let mut point_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Blue, BASE_SIZE).expect("Failed to create a texture");
+    let snake_point = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
+    let point_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Blue, BASE_SIZE).expect("Failed to create a texture");
+
+
     canvas.set_draw_color(Color::RGB(255, 0, 0));
 
     let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
@@ -142,8 +114,6 @@ pub fn main() {
                 _ => {}
             }
         }
-
-
         counter_loop += 1;
         if counter_loop >= 120 {
             point.set_position(random_position_in_grid(rng));
@@ -152,7 +122,7 @@ pub fn main() {
 
         Cube::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
         //Новое положение кубика, скорость опеределена числом
-        for i in 0..7 {
+        for _ in 0..7 {
             if cube.consume_another_cube(&point) {
                 info!("point!");
                 counter_loop = 360;
@@ -167,6 +137,11 @@ pub fn main() {
         canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
         canvas.copy(&snake_point, None, Rect::new(cube.get_position().0 + grid_left as i32, cube.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         canvas.copy(&point_texture, None, Rect::new(point.get_position().0 + grid_left as i32, point.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+
+        for i in test_snake.position.tail.iter(){
+            canvas.copy(&snake_point, None, Rect::new(i.0+ grid_left as i32, i.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        }
+
         canvas.present();
         //60 FPS
         sleep(Duration::new(0, 1_000_000_000u32 / 60));
@@ -174,27 +149,4 @@ pub fn main() {
 }
 
 
-fn rand_color(mut rng: ThreadRng) -> sdl2::pixels::Color {
-    Color::RGB(rng.gen(), rng.gen(), rng.gen())
-}
-
-fn new_color(t: &mut Texture, c: &mut Canvas<Window>, rng: ThreadRng) {
-    c.with_texture_canvas(t, |texture| {
-        texture.set_draw_color(rand_color(rng));
-        texture.clear();
-    }).unwrap()
-}
-
-struct Snake {
-    length: i16,
-    direction: Direction,
-
-}
 //fn handle_events
-
-fn random_position_in_grid(mut rng: ThreadRng) -> (i32, i32) {
-    let x = rng.gen_range(0, (FIELD - 1)) * BASE_SIZE;
-    let y = rng.gen_range(0, (FIELD - 1)) * BASE_SIZE;
-    info!("pos:{:?}", (x as i32, y as i32));
-    (x as i32, y as i32)
-}
