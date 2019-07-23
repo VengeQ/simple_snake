@@ -7,13 +7,13 @@ extern crate sdl2_sys;
 extern crate sdl2;
 
 mod moving;
-mod moving_entities;
+mod square;
 mod helpers;
 mod snake;
 
-use crate::moving::Moving;
-use crate::moving::Direction;
-use crate::moving_entities::Cube;
+use moving::Moving;
+use moving::Direction;
+
 
 use sdl2::pixels::{Color};
 use sdl2::event::Event;
@@ -24,7 +24,8 @@ use sdl2::mouse::MouseButton;
 use sdl2::render::{TextureCreator};
 use sdl2::rect::Rect;
 use helpers::*;
-use crate::snake::Snake;
+use snake::Snake;
+use square::Square;
 
 const WIDTH: u32 = 600;
 //количество полей
@@ -42,6 +43,12 @@ macro_rules! texture {
             create_texture_rect(&mut canvas, &texture_creator, TextureColor::Green, BASE_SIZE as u32).unwrap()
         )
       }
+
+struct SnakeGame{
+    snake:crate::snake::Snake,
+    point:i32,
+    is_over:bool
+}
 
 pub fn main() {
     log4rs::init_file("config/log4rs.yaml", Default::default()).expect("File not found or can't be read");
@@ -72,10 +79,11 @@ pub fn main() {
     let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
-    let mut point = Cube::from_position(random_position_in_grid(rng));
-    let test_snake =Snake::from_position((2,2),vec![(2,3),(2,4)]);
+    let mut point = Square::from_position(random_position_in_grid(rng));
+    let mut test_snake =Snake::from_position((2,2),vec![(2,3),(2,4)]);
+    info!("Test snake:{:?}", &test_snake);
     //let test_snake_textures =
-    let mut cube = Cube::new(Direction::Bot);
+    let mut cube = Square::new(Direction::Bot);
     let snake_point = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
     let point_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Blue, BASE_SIZE).expect("Failed to create a texture");
 
@@ -117,10 +125,17 @@ pub fn main() {
         counter_loop += 1;
         if counter_loop >= 120 {
             point.set_position(random_position_in_grid(rng));
+
             counter_loop = 0;
         }
 
-        Cube::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
+        if counter_loop%30==0{
+            test_snake.move_in_direction();
+        }
+
+
+
+        Square::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
         //Новое положение кубика, скорость опеределена числом
         for _ in 0..7 {
             if cube.consume_another_cube(&point) {
@@ -138,9 +153,13 @@ pub fn main() {
         canvas.copy(&snake_point, None, Rect::new(cube.get_position().0 + grid_left as i32, cube.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         canvas.copy(&point_texture, None, Rect::new(point.get_position().0 + grid_left as i32, point.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
 
+
+
         for i in test_snake.position.tail.iter(){
             canvas.copy(&snake_point, None, Rect::new(i.0+ grid_left as i32, i.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
+        canvas.copy(&snake_point, None, Rect::new(test_snake.position.head.0+ grid_left as i32, test_snake.position.head.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+
 
         canvas.present();
         //60 FPS

@@ -3,17 +3,17 @@ use crate::moving::Moving;
 
 ///simple square
 #[derive(Debug)]
-pub struct Cube {
+pub struct Square {
     direction: Direction,
     next_direction: Direction,
     position: (i32, i32),
     prev_direction: Direction,
 }
 
-impl Cube {
+impl Square {
     ///Create new square with custom direction in top left corner
     pub fn new(direction: Direction) -> Self {
-        Cube {
+        Square {
             direction,
             next_direction: direction,
             position: (0, 0),
@@ -31,7 +31,7 @@ impl Cube {
     }
     ///Create not moving square with random position on grid
     pub fn from_position(position: (i32, i32)) -> Self {
-        Cube {
+        Square {
             direction: Direction::NotMove,
             next_direction: Direction::NotMove,
             position,
@@ -45,12 +45,12 @@ impl Cube {
     }
 
     ///Do something when consume another square. May be this should be in Trait Moving
-    pub fn consume_another_cube(&self, another: &Cube) -> bool {
+    pub fn consume_another_cube(&self, another: &Square) -> bool {
         self.position == another.position
     }
 }
 
-impl Moving for Cube {
+impl Moving for Square {
     fn move_in_direction(&mut self) {
         let step = crate::BASE_SIZE;
         if self.position.1 % crate::BASE_SIZE as i32 == 0 && self.position.0 % crate::BASE_SIZE as i32 == 0 {
