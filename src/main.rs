@@ -15,13 +15,13 @@ use moving::Moving;
 use moving::Direction;
 
 
-use sdl2::pixels::{Color};
+use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::thread::sleep;
 use sdl2::mouse::MouseButton;
-use sdl2::render::{TextureCreator};
+use sdl2::render::TextureCreator;
 use sdl2::rect::Rect;
 use helpers::*;
 use snake::Snake;
@@ -29,7 +29,7 @@ use square::Square;
 
 const WIDTH: u32 = 600;
 //количество полей
-const FIELD: u32 = 20;
+const FIELD: u32 = 22;
 const HEIGHT: u32 = 800;
 //размер "квадратика
 const BASE_SIZE: u32 = 20;
@@ -44,10 +44,10 @@ macro_rules! texture {
         )
       }
 
-struct SnakeGame{
-    snake:crate::snake::Snake,
-    point:i32,
-    is_over:bool
+struct SnakeGame {
+    snake: crate::snake::Snake,
+    point: i32,
+    is_over: bool,
 }
 
 pub fn main() {
@@ -80,7 +80,7 @@ pub fn main() {
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
     let mut point = Square::from_position(random_position_in_grid(rng));
-    let mut test_snake =Snake::from_position((2,2),vec![(2,3),(2,4)]);
+    let mut test_snake = Snake::from_position(vec![(2, 2), (2, 3), (2, 4)]);
     info!("Test snake:{:?}", &test_snake);
     //let test_snake_textures =
     let mut cube = Square::new(Direction::Bot);
@@ -101,16 +101,20 @@ pub fn main() {
                         break 'running;
                     }
                 Event::KeyDown { keycode: Some(Keycode::Up), .. } | Event::KeyDown { keycode: Some(Keycode::W), .. } => {
-                    { cube.change_direction(Direction::Top) }
+                    cube.change_direction(Direction::Top);
+                    test_snake.change_direction(Direction::Top);
                 }
                 Event::KeyDown { keycode: Some(Keycode::Down), .. } | Event::KeyDown { keycode: Some(Keycode::S), .. } => {
-                    { cube.change_direction(Direction::Bot) }
+                    cube.change_direction(Direction::Bot);
+                    test_snake.change_direction(Direction::Bot);
                 }
                 Event::KeyDown { keycode: Some(Keycode::Left), .. } | Event::KeyDown { keycode: Some(Keycode::A), .. } => {
-                    { cube.change_direction(Direction::Left) }
+                    cube.change_direction(Direction::Left);
+                    test_snake.change_direction(Direction::Left);
                 }
                 Event::KeyDown { keycode: Some(Keycode::Right), .. } | Event::KeyDown { keycode: Some(Keycode::D), .. } => {
-                    { cube.change_direction(Direction::Right) }
+                    cube.change_direction(Direction::Right);
+                    test_snake.change_direction(Direction::Right)
                 }
                 Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
                     cube.pause();
@@ -124,22 +128,25 @@ pub fn main() {
         }
         counter_loop += 1;
         if counter_loop >= 120 {
-            point.set_position(random_position_in_grid(rng));
+          //  point.set_position(random_position_in_grid(rng));
 
             counter_loop = 0;
         }
 
-        if counter_loop%30==0{
+
+
+        if counter_loop % 5 == 0 {
+            Snake::set_new_position_if_border(&mut test_snake, (BASE_SIZE * (FIELD - 1)) as i32);
             test_snake.move_in_direction();
+
         }
 
-
-
-        Square::set_new_position_if_border(&mut cube, (FIELD * (BASE_SIZE - 1)) as i32);
+        Square::set_new_position_if_border(&mut cube, (BASE_SIZE * (FIELD - 1)) as i32);
         //Новое положение кубика, скорость опеределена числом
         for _ in 0..7 {
             if cube.consume_another_cube(&point) {
                 info!("point!");
+                point.set_position(random_position_in_grid(rng));
                 counter_loop = 360;
             };
             debug!("cube_pos:{:?}", cube.get_position());
@@ -154,12 +161,9 @@ pub fn main() {
         canvas.copy(&point_texture, None, Rect::new(point.get_position().0 + grid_left as i32, point.get_position().1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
 
 
-
-        for i in test_snake.position.tail.iter(){
-            canvas.copy(&snake_point, None, Rect::new(i.0+ grid_left as i32, i.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        for i in test_snake.get_position() {
+            canvas.copy(&snake_point, None, Rect::new(i.0 + grid_left as i32, i.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
-        canvas.copy(&snake_point, None, Rect::new(test_snake.position.head.0+ grid_left as i32, test_snake.position.head.1 + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-
 
         canvas.present();
         //60 FPS
