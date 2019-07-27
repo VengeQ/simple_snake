@@ -83,7 +83,7 @@ impl Moving for Square {
             Direction::Right => {
                 self.position = (self.position.0 + (crate::BASE_SIZE / step) as i32, self.position.1)
             }
-            Direction::NotMove => if self.position.0 % crate::BASE_SIZE as i32 == 0 && self.position.0 % crate::BASE_SIZE as i32 == 0 { self.direction = Direction::NotMove }
+            Direction::NotMove => if self.position.0 % crate::BASE_SIZE as i32 == 0 && self.position.1 % crate::BASE_SIZE as i32 == 0 { self.direction = Direction::NotMove }
         };
     }
 
