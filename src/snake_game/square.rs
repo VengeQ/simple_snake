@@ -1,3 +1,5 @@
+#![warn(unused_variables)]
+
 use crate::moving::Direction;
 use crate::moving::Moving;
 
@@ -22,10 +24,10 @@ impl Square {
     }
     pub fn set_new_position_if_border(&mut self, max: i32) {
         match self.direction {
-            Direction::Top if self.position.1 < 0 => self.position = (self.position.0, max),
-            Direction::Bot if self.position.1 > max => self.position = (self.position.0, 0),
-            Direction::Left if self.position.0 < 0 => self.position = (max, self.position.1),
-            Direction::Right if self.position.0 > max => self.position = (0, self.position.1),
+            Direction::Top if self.position.1 <= 0 => self.position = (self.position.0, max),
+            Direction::Bot if self.position.1 >= max => self.position = (self.position.0, 0),
+            Direction::Left if self.position.0 <= 0 => self.position = (max, self.position.1),
+            Direction::Right if self.position.0 >= max => self.position = (0, self.position.1),
             _ => ()
         }
     }
@@ -43,6 +45,7 @@ impl Square {
     pub fn get_position(&self) -> ((i32, i32)) {
         self.position
     }
+
 
     ///Do something when consume another square. May be this should be in Trait Moving
     pub fn consume_another_cube(&self, another: &Square) -> bool {
