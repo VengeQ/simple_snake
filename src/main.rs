@@ -15,7 +15,7 @@ use moving::Direction;
 use snake_game::*;
 
 
-use sdl2::pixels::Color;
+use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
@@ -63,6 +63,7 @@ struct SnakeGame {
     speed: u8,
 }
 
+
 impl SnakeGame {
     pub fn start(&mut self) {
         self.snake.change_direction(crate::Direction::Bot);
@@ -94,6 +95,7 @@ pub fn main() {
     let window: Window = video_subsystem.window("rust-sdl2 demo: Snake", WIDTH, HEIGHT)
         .position_centered().vulkan().build().expect("Failed to create window");
 
+
     let mut canvas = window.into_canvas()
         .target_texture().present_vsync().build().expect("Failed to convert window into canvas");
 
@@ -103,7 +105,29 @@ pub fn main() {
     let grid_bottom = L_SIZE;
     info!("Grid values:\n\tleft:{}\n\tright:{}\n\ttop:{}\n\tbottom:{}", grid_left, grid_right, grid_top, grid_bottom);
 
+    let (w, h) = (10, 10);
+
     let creator: TextureCreator<_> = canvas.texture_creator();
+    let mut texture = creator.create_texture_streaming(PixelFormatEnum::RGB24, w, h).unwrap();
+    texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        let (w, h) = (w as usize, h as usize);
+        let length = buffer.len();
+        println!("{}", pitch);
+        println!("{}", &buffer.len());
+        for y in 0..w {
+            for x in 0..h {
+                let offset = 3 * y + x * pitch;
+                info!("offset: {}", offset);
+                if x == 0 || x == h-1 || y == h-1 || y == 0 {
+                    buffer[offset + 0] = 164;
+                    buffer[offset + 1] = 164;
+                    buffer[offset + 2] = 0;
+
+                }
+            }
+        };
+        println!("{:?}", &buffer);
+    }).unwrap();
     let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
@@ -140,10 +164,11 @@ pub fn main() {
         }
 
         counter_loop += 1;
-        if counter_loop >= 120 {
-            //  point.set_position(random_position_in_grid(rng));
+        if counter_loop >= 240 {
+            snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
             counter_loop = 0;
         }
+
         if counter_loop % (11_u8 - snake_game.speed) == 0 && snake_game.is_started {
             if snake_game.snake.consume_another_cube(&snake_game.point_position) {
                 info!("point!");
@@ -166,6 +191,8 @@ pub fn main() {
         for i in snake_game.snake.get_position() {
             canvas.copy(&snake_texture, None, Rect::new(i.0 * (BASE_SIZE as i32) + grid_left as i32, i.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
+        canvas.copy(&texture, None, Rect::new(100, 100, 120, 120)).unwrap();
+
 
         canvas.present();
         //60 FPS
@@ -189,19 +216,19 @@ fn handle_events(event_pump: &mut EventPump, quit: &mut bool, snake_game: &mut S
                 break;
             }
             Event::KeyDown { keycode: Some(Keycode::Up), .. } | Event::KeyDown { keycode: Some(Keycode::W), .. } =>
-                if snake_game.is_started || !snake_game.is_over { snake_game.snake.change_direction(Direction::Top) },
+                if snake_game.is_started && !snake_game.is_over { snake_game.snake.change_direction(Direction::Top) },
 
             Event::KeyDown { keycode: Some(Keycode::Down), .. } | Event::KeyDown { keycode: Some(Keycode::S), .. } =>
-                if snake_game.is_started || !snake_game.is_over { snake_game.snake.change_direction(Direction::Bot) },
+                if snake_game.is_started && !snake_game.is_over { snake_game.snake.change_direction(Direction::Bot) },
 
             Event::KeyDown { keycode: Some(Keycode::Left), .. } | Event::KeyDown { keycode: Some(Keycode::A), .. } =>
-                if snake_game.is_started || !snake_game.is_over { snake_game.snake.change_direction(Direction::Left) },
+                if snake_game.is_started && !snake_game.is_over { snake_game.snake.change_direction(Direction::Left) },
 
             Event::KeyDown { keycode: Some(Keycode::Right), .. } | Event::KeyDown { keycode: Some(Keycode::D), .. } =>
-                if snake_game.is_started || !snake_game.is_over { snake_game.snake.change_direction(Direction::Right) },
+                if snake_game.is_started && !snake_game.is_over { snake_game.snake.change_direction(Direction::Right) },
 
             Event::KeyDown { keycode: Some(Keycode::P), .. } =>
-                if snake_game.is_started || !snake_game.is_over { snake_game.snake.pause() },
+                if snake_game.is_started && !snake_game.is_over { snake_game.snake.pause() },
 
             Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } =>
                 canvas.set_draw_color(rand_color(rng)),
