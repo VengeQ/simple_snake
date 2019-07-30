@@ -1,6 +1,7 @@
 use crate::moving::Direction;
 use crate::moving::Moving;
-use std::collections::VecDeque;
+
+use std::collections::vec_deque::VecDeque;
 
 
 #[derive(Debug)]
@@ -28,16 +29,11 @@ impl Snake {
 
     //Если голова змеи пересекает ее тело, то хана
     pub fn is_break(snake: &Snake) -> bool {
-        let mut result = false;
-        let tail = &snake.position;
-        let length = tail.len();
-        for mut count in 1..length {
-            if (tail[count]) == tail[0] {
-                count = length;
-                result = true;
-            }
+        let head = &snake.position.get(0).unwrap();
+        match snake.get_position().iter().skip(1).find(|value| value == head) {
+            Some(T) => true,
+            None => false
         }
-        result
     }
 
     pub fn is_border(&mut self, max: i32) -> bool {
@@ -77,6 +73,10 @@ impl Snake {
 
     pub fn grow_up(&mut self) {
         self.position.push_back(*(self.position.get(self.position.len() - 1).unwrap()));
+    }
+
+    pub fn is_pause(&mut self) -> bool{
+        self.curr_direction == Direction::NotMove
     }
 }
 
@@ -139,6 +139,8 @@ impl Moving for Snake {
             self.next_direction = Direction::NotMove;
         }
     }
+
+
 }
 
 #[cfg(test)]
