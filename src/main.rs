@@ -9,17 +9,19 @@ extern crate sdl2;
 mod moving;
 mod helpers;
 mod snake_game;
+mod rendering;
 
 use moving::Moving;
 use moving::Direction;
 use snake_game::*;
+
 
 use std::i32;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
-use std::thread::{sleep, Thread};
+use std::thread::sleep;
 use sdl2::mouse::MouseButton;
 use sdl2::render::{TextureCreator, Canvas};
 use sdl2::rect::Rect;
@@ -29,7 +31,7 @@ use square::Square;
 use sdl2::EventPump;
 use rand::prelude::ThreadRng;
 use sdl2::video::Window;
-use std::collections::VecDeque;
+use rendering::textures::*;
 
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 800;
@@ -54,46 +56,6 @@ macro_rules! vec_deq {
     };
 }
 
-struct SnakeGame {
-    snake: snake::Snake,
-    point_position: square::Square,
-    points: i32,
-    is_started: bool,
-    is_over: bool,
-    speed: u8,
-    speed_controller: u8,
-}
-
-
-impl SnakeGame {
-    pub fn start(&mut self) {
-        self.snake.change_direction(crate::Direction::Bot);
-        self.is_over = false;
-        self.is_started = true;
-    }
-
-    pub fn add_points(&mut self, value: i32) {
-        self.points += value;
-    }
-
-    pub fn get_points(&self) -> i32 {
-        self.points
-    }
-
-    pub fn game_over(&mut self) {
-        self.is_over = true;
-        self.is_started = false;
-    }
-
-    pub fn speed_up(&mut self) {
-        self.speed_controller += 1;
-        if self.speed_controller == 10 && self.speed != 10 {
-            self.speed += 1;
-            self.speed_controller = 0;
-        }
-    }
-}
-
 pub fn main() {
 
     //логирую только в девелопе
@@ -116,52 +78,15 @@ pub fn main() {
     let grid_top = HEIGHT - (BASE_SIZE * FIELD + L_SIZE);
     let grid_bottom = L_SIZE;
     info!("Grid values:\n\tleft:{}\n\tright:{}\n\ttop:{}\n\tbottom:{}", grid_left, grid_right, grid_top, grid_bottom);
-
-    let (w, h) = (BASE_SIZE / 2, BASE_SIZE / 2);
-
     let creator: TextureCreator<_> = canvas.texture_creator();
-    let mut point_texture = creator.create_texture_streaming(PixelFormatEnum::RGB24, w, h).unwrap();
-    point_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        let (w, h) = (w as usize, h as usize);
-        let step = (255 / (w / 2) / (h / 2)) as u8;
-        for y in 0..w {
-            for x in 0..h {
-                let offset = 3 * y + x * pitch;
-                info!("offset: {}", offset);
+    let point_texture = point_texture(&creator,BASE_SIZE,BASE_SIZE);
 
-                if x == 0 || x == h - 1 || y == h - 1 || y == 0 {
-                    buffer[offset + 0] = 200;
-                    buffer[offset + 1] = 200;
-                    buffer[offset + 2] = 0;
-                } else {
-                    buffer[offset + 0] = 0;
-                    buffer[offset + 1] = ((((h as i32) / 2) * 3 - ((x as i32) - (h as i32) / 2).abs() * 2) * (((h as i32) / 2) * 3 - ((y as i32) - (h as i32) / 2).abs() * 2)) as u8;
-                    buffer[offset + 2] = 0;
-                }
-            }
-        };
-    }).unwrap();
+    let body_texture = body(&creator, Direction::NotMove, BASE_SIZE, BASE_SIZE);
+    let left_head = head_with_eyes(&creator, Direction::Left, BASE_SIZE, BASE_SIZE);
+    let right_head = head_with_eyes(&creator, Direction::Right, BASE_SIZE, BASE_SIZE);
+    let bot_head = head_with_eyes(&creator, Direction::Bot, BASE_SIZE, BASE_SIZE);
+    let top_head = head_with_eyes(&creator, Direction::Top, BASE_SIZE, BASE_SIZE);
 
-    let mut head_texture = creator.create_texture_streaming(PixelFormatEnum::RGB24, BASE_SIZE, BASE_SIZE).unwrap();
-    head_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        let (w, h) = (BASE_SIZE as usize, BASE_SIZE as usize);
-        for y in 0..w {
-            for x in 0..h {
-                let offset = 3 * y + x * pitch;
-                info!("offset: {}", offset);
-
-                if x == 0 || x == h - 1 || y == h - 1 || y == 0 || ((x == 7 || x ==13) && (y == 7 || y == 13)) {
-                    buffer[offset + 0] = 0;
-                    buffer[offset + 1] = 0;
-                    buffer[offset + 2] = 200;
-                } else {
-                    buffer[offset + 0] = 0;
-                    buffer[offset + 1] = 200;
-                    buffer[offset + 2] = 0;
-                }
-            };
-        }
-    }).unwrap();
     let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
@@ -174,22 +99,17 @@ pub fn main() {
         speed: 1,
         speed_controller: 0,
     };
-
     info!("init point position: {:?}", snake_game.point_position.get_position());
-
-    // let point_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Green, BASE_SIZE).expect("Failed to create a texture");
-    let snake_texture = create_texture_rect(&mut canvas, &creator, TextureColor::Blue, BASE_SIZE).expect("Failed to create a texture");
 
     canvas.set_draw_color(Color::RGB(255, 0, 0));
 
     let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
     let mut counter_loop: u16 = 0;
     let mut quit = false;
-
+    let mut last_state = &bot_head;
 
     'running: loop {
         quit = Snake::is_break(&snake_game.snake);
-
         handle_events(&mut event_pump, &mut quit, &mut snake_game, rng, &mut canvas);
 
         if quit {
@@ -199,7 +119,7 @@ pub fn main() {
             break;
         }
 
-        if !snake_game.snake.is_pause(){
+        if !snake_game.snake.is_pause() {
             counter_loop += 1;
         }
 
@@ -211,7 +131,6 @@ pub fn main() {
 
         if counter_loop % (11_u16 - (snake_game.speed as u16)) == 0 && snake_game.is_started {
             if snake_game.snake.consume_another_cube(&snake_game.point_position) {
-                info!("point!");
                 snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
                 snake_game.add_points(snake_game.speed as i32);
                 info!("Current points:{}", snake_game.get_points());
@@ -221,7 +140,7 @@ pub fn main() {
             }
 
             snake_game.snake.move_in_direction();
-            info!("current snake position: {:?}", snake_game.snake.get_position());
+            debug!("current snake position: {:?}", snake_game.snake.get_position());
         }
 
         // We draw it.
@@ -229,10 +148,18 @@ pub fn main() {
         canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
         canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
         canvas.copy(&point_texture, None, Rect::new(snake_game.point_position.get_position().0 * (BASE_SIZE as i32) + grid_left as i32, snake_game.point_position.get_position().1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-        for i in snake_game.snake.get_position() {
-            canvas.copy(&head_texture, None, Rect::new(i.0 * (BASE_SIZE as i32) + grid_left as i32, i.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        for i in snake_game.snake.get_position().iter().skip(1) {
+            canvas.copy(&body_texture, None, Rect::new(i.0 * (BASE_SIZE as i32) + grid_left as i32, i.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
 
+        let a = snake_game.snake.get_position().iter().take(1).next().unwrap();
+        match snake_game.snake.direction() {
+            Direction::Left => canvas.copy(&left_head, None, Rect::new(a.0 * (BASE_SIZE as i32) + grid_left as i32, a.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+            Direction::Top => canvas.copy(&top_head, None, Rect::new(a.0 * (BASE_SIZE as i32) + grid_left as i32, a.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+            Direction::Bot => canvas.copy(&bot_head, None, Rect::new(a.0 * (BASE_SIZE as i32) + grid_left as i32, a.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+            Direction::Right => canvas.copy(&right_head, None, Rect::new(a.0 * (BASE_SIZE as i32) + grid_left as i32, a.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+            Direction::NotMove => canvas.copy(last_state, None, Rect::new(a.0 * (BASE_SIZE as i32) + grid_left as i32, a.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+        }
 
         canvas.present();
         //60 FPS

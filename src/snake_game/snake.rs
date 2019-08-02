@@ -31,7 +31,7 @@ impl Snake {
     pub fn is_break(snake: &Snake) -> bool {
         let head = &snake.position.get(0).unwrap();
         match snake.get_position().iter().skip(1).find(|value| value == head) {
-            Some(T) => true,
+            Some(t) => true,
             None => false
         }
     }
@@ -69,6 +69,10 @@ impl Snake {
     ///Do something when consume another square. May be this should be in Trait Moving
     pub fn consume_another_cube(&self, another: &crate::Square) -> bool {
         self.position[0] == another.get_position()
+    }
+
+    pub fn direction(&self) -> Direction{
+        self.curr_direction
     }
 
     pub fn grow_up(&mut self) {
