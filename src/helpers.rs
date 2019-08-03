@@ -14,6 +14,7 @@ pub enum TextureColor {
     Red,
     Black,
     White,
+    Grey
 }
 
 ///Generate random Color
@@ -50,6 +51,7 @@ pub fn create_texture_rect<'a>(canvas: &mut Canvas<Window>, texture_creator: &'a
                 TextureColor::Red => texture.set_draw_color(Color::RGB(255, 0, 0)),
                 TextureColor::Black => texture.set_draw_color(Color::RGB(0, 0, 0)),
                 TextureColor::White => texture.set_draw_color(Color::RGB(255, 255, 255)),
+                TextureColor::Grey => texture.set_draw_color(Color::RGB(100, 100, 100)),
             }
             texture.clear();
         }).expect("Failed to color a texture");

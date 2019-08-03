@@ -37,14 +37,14 @@ use rendering::textures::*;
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 800;
 //количество полей
-const FIELD: u32 = 22;
+const FIELD: u32 = 25;
 //размер "квадратика
-const BASE_SIZE: u32 = 12;
+const BASE_SIZE: u32 = 15;
 //отступ по краям
-const L_SIZE: u32 = (600 - BASE_SIZE * FIELD) / 2;
+const L_SIZE: u32 = (WIDTH - BASE_SIZE * FIELD) / 2;
 // расстояние между гридом и граничкой
 const BORDER_HEIGHT: u32 = 650;
-const FPS: u16 = 360;
+const FPS: u16 = 120;
 
 
 pub fn main() {
@@ -81,12 +81,9 @@ pub fn main() {
     let right_head = head_with_eyes(&creator, Direction::Right, BASE_SIZE, BASE_SIZE);
     let bot_head = head_with_eyes(&creator, Direction::Bot, BASE_SIZE, BASE_SIZE);
     let top_head = head_with_eyes(&creator, Direction::Top, BASE_SIZE, BASE_SIZE);
-    let font_texture = create_texture_from_text(&creator, &font, &snake_game.points.to_string(), 100, 100, 100).expect("Can't create font texture");
 
-    let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
+    let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Grey, BASE_SIZE * FIELD).expect("Failed to create a texture");
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
-
-
 
 
     canvas.set_draw_color(Color::RGB(255, 0, 0));
@@ -95,6 +92,7 @@ pub fn main() {
     let mut counter_loop: u16 = 0;
     let mut quit = false;
     let mut last_state = &right_head;
+    let (start_x_point, start_y_point) = ((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32);
     'running: loop {
         if Snake::is_break(&snake_game.snake) {
             snake_game.game_over();
@@ -107,7 +105,6 @@ pub fn main() {
             break;
         }
 
-
         if !snake_game.snake.is_pause() {
             counter_loop += 1;
         }
@@ -115,10 +112,11 @@ pub fn main() {
 
         if counter_loop % FPS == 0 {
             debug!("{:?}", &snake_game);
-            if counter_loop >= FPS * 8 {
-                snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
-                counter_loop = 0;
-            }
+        }
+        if counter_loop >= 60 * 8 {
+            info!("counter: {}",counter_loop);
+            snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
+            counter_loop = 0;
         }
 
         if counter_loop % (11_u16 - (snake_game.speed as u16)) * FPS / 60 == 0 && snake_game.is_started {
@@ -139,9 +137,11 @@ pub fn main() {
         canvas.clear();
         canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
         canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
+
         if snake_game.is_started {
             canvas.copy(&point_texture, None, Rect::new(snake_game.point_position.get_position().0 * (BASE_SIZE as i32) + grid_left as i32, snake_game.point_position.get_position().1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
+
         for snake_body in snake_game.snake.get_position().iter().skip(1) {
             canvas.copy(&body_texture, None, Rect::new(snake_body.0 * (BASE_SIZE as i32) + grid_left as i32, snake_body.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
@@ -166,7 +166,8 @@ pub fn main() {
             Direction::NotMove => canvas.copy(last_state, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
         }
 
-        canvas.copy(&font_texture, None ,Some(Rect::new((WIDTH/2) as i32, ( HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, 40, 30)));
+        display_game_information(&snake_game, &mut canvas, &creator, &font, start_x_point, start_y_point as i32);
+
         canvas.present();
         //60 FPS
         sleep(Duration::new(0, 1_000_000_000u32 / (FPS as u32)));

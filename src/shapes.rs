@@ -548,7 +548,7 @@ TextureCreator<WindowContext>,
 }
 
 fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
-    Some(Rect::new(x, y, text.len() as u32 * 20, 30))
+    Some(Rect::new(x, y, text.len() as u32 * 10, 23))
 }
 fn display_game_information<'a>(tetris: &Tetris,
                                 canvas: &mut Canvas<Window>,
