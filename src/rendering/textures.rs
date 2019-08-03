@@ -1,7 +1,7 @@
 use sdl2::render::{Texture, TextureCreator};
 use crate::Direction;
-use sdl2::video:: WindowContext;
-use sdl2::pixels::PixelFormatEnum;
+use sdl2::video::WindowContext;
+use sdl2::pixels::{PixelFormatEnum, Color};
 
 fn turn_head(texture: &mut Texture, direction: Direction) {
     let (w, h) = (texture.query().width as usize, texture.query().height as usize);
@@ -16,9 +16,9 @@ fn turn_head(texture: &mut Texture, direction: Direction) {
         for y in 0..w {
             for x in 0..h {
                 let offset = 3 * y + x * (pitch);
-                if x == 0 || x == h - 1 || y == h - 1 || y == 0  ||
-                    ((y == first_eye.0 || y == second_eye.0 || y == first_eye.0+1 || y == second_eye.0+1)
-                        && (x == first_eye.1 || x == second_eye.1 || x == first_eye.1+1 || x == second_eye.1+1)) {
+                if x == 0 || x == h - 1 || y == h - 1 || y == 0 ||
+                    ((y == first_eye.0 || y == second_eye.0 || y == first_eye.0 + 1 || y == second_eye.0 + 1)
+                        && (x == first_eye.1 || x == second_eye.1 || x == first_eye.1 + 1 || x == second_eye.1 + 1)) {
                     buffer[offset + 0] = 0;
                     buffer[offset + 1] = 0;
                     buffer[offset + 2] = 200;
@@ -46,7 +46,7 @@ pub fn body(creator: &TextureCreator<WindowContext>, direction: Direction, width
     head_texture
 }
 
-pub fn point_texture(creator: &TextureCreator<WindowContext>,  width: u32, height: u32) -> Texture{
+pub fn point_texture(creator: &TextureCreator<WindowContext>, width: u32, height: u32) -> Texture {
     let mut point_texture = creator.create_texture_streaming(PixelFormatEnum::RGB24, width, height).unwrap();
     point_texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
         let (w, h) = (width as usize, height as usize);
@@ -67,4 +67,15 @@ pub fn point_texture(creator: &TextureCreator<WindowContext>,  width: u32, heigh
         };
     }).unwrap();
     point_texture
+}
+
+pub fn create_texture_from_text<'a>(texture_creator: &'a TextureCreator<WindowContext>,
+                                    font: &sdl2::ttf::Font,
+                                    text: &str,
+                                    r: u8, g: u8, b: u8,) -> Option<Texture<'a>> {
+    if let Ok(surface) = font.render(text).blended(Color::RGB(r, g, b)) {
+        texture_creator.create_texture_from_surface(&surface).ok()
+    } else {
+        None
+    }
 }

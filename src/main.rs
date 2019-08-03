@@ -33,17 +33,18 @@ use rand::prelude::ThreadRng;
 use sdl2::video::Window;
 use rendering::textures::*;
 
+
 const WIDTH: u32 = 600;
 const HEIGHT: u32 = 800;
 //количество полей
-const FIELD: u32 = 20;
+const FIELD: u32 = 22;
 //размер "квадратика
-const BASE_SIZE: u32 = 20;
+const BASE_SIZE: u32 = 12;
 //отступ по краям
 const L_SIZE: u32 = (600 - BASE_SIZE * FIELD) / 2;
 // расстояние между гридом и граничкой
 const BORDER_HEIGHT: u32 = 650;
-const FPS: u16 = 60;
+const FPS: u16 = 360;
 
 
 pub fn main() {
@@ -54,6 +55,8 @@ pub fn main() {
         Err(_) => ()
     }
     info!("Logger is ready");
+    let ttf_context = sdl2::ttf::init().expect("Could not load ttf context");
+    let font = ttf_context.load_font("assets/amazone.ttf", 32).expect("Couldn't load the font");
 
     let rng = rand::thread_rng();
     let sdl_context = sdl2::init().expect("SDL initialization failed");
@@ -68,6 +71,8 @@ pub fn main() {
     let grid_top = HEIGHT - (BASE_SIZE * FIELD + L_SIZE);
     let grid_bottom = L_SIZE;
     info!("Grid values:\n\tleft:{}\n\tright:{}\n\ttop:{}\n\tbottom:{}", grid_left, grid_right, grid_top, grid_bottom);
+    let mut snake_game = SnakeGame::with_field(FIELD, rng);
+    info!("init point position: {:?}", snake_game.point_position.get_position());
     let creator: TextureCreator<_> = canvas.texture_creator();
     let point_texture = point_texture(&creator, BASE_SIZE, BASE_SIZE);
 
@@ -76,20 +81,20 @@ pub fn main() {
     let right_head = head_with_eyes(&creator, Direction::Right, BASE_SIZE, BASE_SIZE);
     let bot_head = head_with_eyes(&creator, Direction::Bot, BASE_SIZE, BASE_SIZE);
     let top_head = head_with_eyes(&creator, Direction::Top, BASE_SIZE, BASE_SIZE);
+    let font_texture = create_texture_from_text(&creator, &font, &snake_game.points.to_string(), 100, 100, 100).expect("Can't create font texture");
 
     let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Black, BASE_SIZE * FIELD).expect("Failed to create a texture");
     let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
-    let mut snake_game = SnakeGame::with_field(FIELD, rng);
-    info!("init point position: {:?}", snake_game.point_position.get_position());
+
+
 
     canvas.set_draw_color(Color::RGB(255, 0, 0));
 
     let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
     let mut counter_loop: u16 = 0;
     let mut quit = false;
-    let mut last_state = &bot_head;
-    println!("{:?}", snake_game.snake.get_position());
+    let mut last_state = &right_head;
     'running: loop {
         if Snake::is_break(&snake_game.snake) {
             snake_game.game_over();
@@ -107,19 +112,19 @@ pub fn main() {
             counter_loop += 1;
         }
 
-        if counter_loop >= 480 {
-            snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
-            counter_loop = 0;
-        }
 
-        if counter_loop % 60 == 0 {
-            info!("{:?}", &snake_game);
+        if counter_loop % FPS == 0 {
+            debug!("{:?}", &snake_game);
+            if counter_loop >= FPS * 8 {
+                snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
+                counter_loop = 0;
+            }
         }
 
         if counter_loop % (11_u16 - (snake_game.speed as u16)) * FPS / 60 == 0 && snake_game.is_started {
             if snake_game.snake.consume_another_cube(&snake_game.point_position) {
                 snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
-                snake_game.add_points(snake_game.speed as i32);
+                snake_game.add_points(1); //умножается на скорость
                 info!("Current points:{}", snake_game.get_points());
                 snake_game.snake.grow_up();
                 snake_game.speed_up();
@@ -134,7 +139,9 @@ pub fn main() {
         canvas.clear();
         canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
         canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
-        canvas.copy(&point_texture, None, Rect::new(snake_game.point_position.get_position().0 * (BASE_SIZE as i32) + grid_left as i32, snake_game.point_position.get_position().1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        if snake_game.is_started {
+            canvas.copy(&point_texture, None, Rect::new(snake_game.point_position.get_position().0 * (BASE_SIZE as i32) + grid_left as i32, snake_game.point_position.get_position().1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
+        }
         for snake_body in snake_game.snake.get_position().iter().skip(1) {
             canvas.copy(&body_texture, None, Rect::new(snake_body.0 * (BASE_SIZE as i32) + grid_left as i32, snake_body.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
         }
@@ -159,6 +166,7 @@ pub fn main() {
             Direction::NotMove => canvas.copy(last_state, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
         }
 
+        canvas.copy(&font_texture, None ,Some(Rect::new((WIDTH/2) as i32, ( HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, 40, 30)));
         canvas.present();
         //60 FPS
         sleep(Duration::new(0, 1_000_000_000u32 / (FPS as u32)));
@@ -170,8 +178,8 @@ fn handle_events(event_pump: &mut EventPump, quit: &mut bool, snake_game: &mut S
         match event {
             Event::KeyDown { keycode: Some(Keycode::Space), .. } =>
                 {
-                    if !snake_game.is_started && !snake_game.is_over{
-                        info!("space!");
+                    if !snake_game.is_started && !snake_game.is_over {
+                        info!("Start new game!");
                         snake_game.start();
                         if snake_game.snake.is_pause() {
                             snake_game.snake.change_direction(Direction::Right);
@@ -205,7 +213,6 @@ fn handle_events(event_pump: &mut EventPump, quit: &mut bool, snake_game: &mut S
                     if snake_game.is_over {
                         snake_game.new_game(FIELD, rng);
                         snake_game.snake.unpause();
-
                     }
                 }
 

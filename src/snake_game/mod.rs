@@ -29,7 +29,7 @@ pub struct SnakeGame {
     pub is_started: bool,
     pub is_over: bool,
     pub speed: u8,
-    pub  speed_controller: u8,
+    pub speed_controller: u8,
 }
 
 
@@ -42,7 +42,7 @@ impl SnakeGame {
     }
 
     pub fn add_points(&mut self, value: i32) {
-        self.points += value;
+        self.points += (self.speed as i32) * value;
     }
 
     pub fn get_points(&self) -> i32 {
@@ -56,26 +56,26 @@ impl SnakeGame {
 
     pub fn speed_up(&mut self) {
         self.speed_controller += 1;
-        if self.speed_controller == 10 && self.speed != 10 {
+        if self.speed_controller == 12 && self.speed != 10 {
             self.speed += 1;
             self.speed_controller = 0;
         }
     }
 
-    pub fn new_game(& mut self,field:u32, rng:ThreadRng){
-            self.snake = Snake::from_position(vec_deq!((0, 0)));
-            self.point_position = Square::from_position(random_position_in_grid_exclusive(rng, &vec_deq!((0, 0)), field));
-            self.points = 0;
-            self.is_started= false;
-            self.is_over = false;
-            self.speed = 4;
-            self.speed_controller = 0;
+    pub fn new_game(&mut self, field: u32, rng: ThreadRng) {
+        self.snake = Snake::from_position(vec_deq!((0, 0)));
+        self.point_position = Square::from_position(random_position_in_grid_exclusive(rng, &vec_deq!((0, 0)), field));
+        self.points = 0;
+        self.is_started = false;
+        self.is_over = false;
+        self.speed = 4;
+        self.speed_controller = 0;
 
-            info!("new game with: {:?}", self)
+        info!("new game with: {:?}", self)
     }
 
-    pub fn with_field(field:u32, rng:ThreadRng) -> Self{
-       SnakeGame {
+    pub fn with_field(field: u32, rng: ThreadRng) -> Self {
+        SnakeGame {
             snake: Snake::from_position(vec_deq!((0, 0))),
             point_position: Square::from_position(random_position_in_grid_exclusive(rng, &vec_deq!((0, 0)), field)),
             points: 0,

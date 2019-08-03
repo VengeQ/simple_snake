@@ -14,3 +14,6 @@ log = "0.4.7"
 
 [features]
 default = ["sdl2/ttf"]
+
+[profile.release]
+lto = true
