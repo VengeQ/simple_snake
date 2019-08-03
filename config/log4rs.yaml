@@ -8,12 +8,12 @@ appenders:
     encoder:
       pattern: "{d} - {m}{n}"
 root:
-  level: info
+  level: debug
   appenders:
     - stdout
 loggers:
   app:
-    level: info
+    level: debug
     appenders:
       - appli
     additive: false

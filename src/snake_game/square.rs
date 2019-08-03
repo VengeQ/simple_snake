@@ -113,5 +113,6 @@ impl Moving for Square {
             self.next_direction = Direction::NotMove;
         }
     }
+    fn unpause(&mut self){unimplemented!()}
 }
 

@@ -117,7 +117,7 @@ impl Moving for Snake {
             }
         } else {
             debug!("new_border");
-            self.set_new_position_if_border(crate::BASE_SIZE as i32);
+            self.set_new_position_if_border(crate::FIELD as i32);
         }
     }
 
@@ -142,6 +142,10 @@ impl Moving for Snake {
             self.prev_direction = self.curr_direction;
             self.next_direction = Direction::NotMove;
         }
+    }
+
+    fn unpause(&mut self) {
+        self.curr_direction = self.next_direction
     }
 
 

@@ -15,4 +15,5 @@ pub trait Moving {
     fn set_position(&mut self, position: (i32, i32));
     fn change_direction(&mut self, new_direction: Direction);
     fn pause(&mut self);
+    fn unpause(&mut self);
 }

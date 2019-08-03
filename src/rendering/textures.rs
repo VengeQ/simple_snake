@@ -16,7 +16,7 @@ fn turn_head(texture: &mut Texture, direction: Direction) {
         for y in 0..w {
             for x in 0..h {
                 let offset = 3 * y + x * (pitch);
-                if x == 0 || x == h - 1 || y == h - 1 || y == 0 || x == 1 || y == 1 || x == h - 2 || y == h - 2 ||
+                if x == 0 || x == h - 1 || y == h - 1 || y == 0  ||
                     ((y == first_eye.0 || y == second_eye.0 || y == first_eye.0+1 || y == second_eye.0+1)
                         && (x == first_eye.1 || x == second_eye.1 || x == first_eye.1+1 || x == second_eye.1+1)) {
                     buffer[offset + 0] = 0;
