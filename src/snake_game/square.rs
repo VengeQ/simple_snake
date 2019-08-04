@@ -1,4 +1,4 @@
-#![warn(unused_variables)]
+
 
 use crate::moving::Direction;
 use crate::moving::Moving;
@@ -14,6 +14,7 @@ pub struct Square {
 
 impl Square {
     ///Create new square with custom direction in top left corner
+    #[allow(dead_code)]
     pub fn new(direction: Direction) -> Self {
         Square {
             direction,
@@ -22,6 +23,7 @@ impl Square {
             prev_direction: Direction::NotMove,
         }
     }
+    #[allow(dead_code)]
     pub fn set_new_position_if_border(&mut self, max: i32) {
         match self.direction {
             Direction::Top if self.position.1 <= 0 => self.position = (self.position.0, max),
@@ -48,6 +50,7 @@ impl Square {
 
 
     ///Do something when consume another square. May be this should be in Trait Moving
+    #[allow(dead_code)]
     pub fn consume_another_cube(&self, another: &Square) -> bool {
         self.position == another.position
     }

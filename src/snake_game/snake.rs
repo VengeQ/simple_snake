@@ -14,11 +14,10 @@ pub struct Snake {
 
 impl Snake {
     pub fn from_position(position: VecDeque<(i32, i32)>) -> Self {
-        let resized_position: VecDeque<(i32, i32)> = position.iter().map(|x| (x.0 * crate::BASE_SIZE as i32, x.1 * crate::BASE_SIZE as i32)).collect();
         Snake {
             curr_direction: Direction::NotMove,
             next_direction: Direction::Right,
-            position: position,
+            position,
             prev_direction: Direction::NotMove,
         }
     }
@@ -30,13 +29,10 @@ impl Snake {
     //Если голова змеи пересекает ее тело, то хана
     pub fn is_break(snake: &Snake) -> bool {
         let head = &snake.position.get(0).unwrap();
-        match snake.get_position().iter().skip(1).find(|value| value == head) {
-            Some(t) => true,
-            None => false
-        }
+        snake.get_position().iter().skip(1).any(|value| value == *head)
     }
 
-    pub fn is_border(&mut self, max: i32) -> bool {
+    pub fn is_border(&self, max: i32) -> bool {
         let (x_position, y_position) = self.position[0];
         match self.next_direction {
             Direction::Top if y_position == 0 => true,
@@ -71,15 +67,18 @@ impl Snake {
         self.position[0] == another.get_position()
     }
 
-    pub fn direction(&self) -> Direction{
+    pub fn direction(&self) -> Direction {
         self.curr_direction
+    }
+    pub fn prev_direction(&self) -> Direction {
+        self.prev_direction
     }
 
     pub fn grow_up(&mut self) {
         self.position.push_back(*(self.position.get(self.position.len() - 1).unwrap()));
     }
 
-    pub fn is_pause(&mut self) -> bool{
+    pub fn is_pause(&self) -> bool {
         self.curr_direction == Direction::NotMove
     }
 }
@@ -121,6 +120,7 @@ impl Moving for Snake {
         }
     }
 
+    #[allow(dead_code, unused_variables)]
     fn set_position(&mut self, position: (i32, i32)) {
         unimplemented!()
     }
@@ -147,8 +147,6 @@ impl Moving for Snake {
     fn unpause(&mut self) {
         self.curr_direction = self.next_direction
     }
-
-
 }
 
 #[cfg(test)]

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use rand::prelude::ThreadRng;
 use sdl2::pixels::Color;
 use sdl2::render::{Texture, Canvas, TextureCreator};
@@ -68,7 +70,7 @@ pub fn random_position_in_grid_exclusive(mut rng: ThreadRng, ex: &VecDeque<(i32,
     let x = rng.gen_range(0, field);
     let y = rng.gen_range(0, field);
     match ex.iter().find(|current| *current == &(x as i32, y as i32)) {
-        Some(x) => random_position_in_grid_exclusive(rng, ex, field),
+        Some(_) => random_position_in_grid_exclusive(rng, ex, field),
         None => {
             info!("pos:{:?}", (x as i32, y as i32));
             (x as i32, y as i32)

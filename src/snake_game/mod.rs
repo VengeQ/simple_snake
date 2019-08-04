@@ -42,7 +42,7 @@ impl SnakeGame {
     }
 
     pub fn add_points(&mut self, value: i32) {
-        self.points += (self.speed as i32) * value;
+        self.points += (i32::from(self.speed)) * value;
     }
 
     pub fn get_points(&self) -> i32 {

@@ -17,7 +17,7 @@ use snake_game::*;
 
 
 use std::i32;
-use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
@@ -50,10 +50,7 @@ const FPS: u16 = 120;
 pub fn main() {
 
     //логирую только в девелопе
-    match log4rs::init_file("config/log4rs.yaml", Default::default()) {
-        Ok(_) => (),
-        Err(_) => ()
-    }
+    if log4rs::init_file("config/log4rs.yaml", Default::default()).is_ok() {};
     info!("Logger is ready");
     let ttf_context = sdl2::ttf::init().expect("Could not load ttf context");
     let font = ttf_context.load_font("assets/amazone.ttf", 32).expect("Couldn't load the font");
@@ -74,103 +71,73 @@ pub fn main() {
     let mut snake_game = SnakeGame::with_field(FIELD, rng);
     info!("init point position: {:?}", snake_game.point_position.get_position());
     let creator: TextureCreator<_> = canvas.texture_creator();
-    let point_texture = point_texture(&creator, BASE_SIZE, BASE_SIZE);
 
-    let body_texture = body(&creator, Direction::NotMove, BASE_SIZE, BASE_SIZE);
-    let left_head = head_with_eyes(&creator, Direction::Left, BASE_SIZE, BASE_SIZE);
-    let right_head = head_with_eyes(&creator, Direction::Right, BASE_SIZE, BASE_SIZE);
-    let bot_head = head_with_eyes(&creator, Direction::Bot, BASE_SIZE, BASE_SIZE);
-    let top_head = head_with_eyes(&creator, Direction::Top, BASE_SIZE, BASE_SIZE);
-
-    let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Grey, BASE_SIZE * FIELD).expect("Failed to create a texture");
-    let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
+    let snake_textures = SnakeTextures::from_base_size(BASE_SIZE, &creator);
+    {
+        let grid = create_texture_rect(&mut canvas, &creator, TextureColor::Grey, BASE_SIZE * FIELD).expect("Failed to create a texture");
+        let border = create_texture_rect(&mut canvas, &creator, TextureColor::White, BASE_SIZE * FIELD + L_SIZE).expect("Failed to create a texture");
 
 
-    canvas.set_draw_color(Color::RGB(255, 0, 0));
+        canvas.set_draw_color(Color::RGB(255, 0, 0));
 
-    let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
-    let mut counter_loop: u16 = 0;
-    let mut quit = false;
-    let mut last_state = &right_head;
-    let (start_x_point, start_y_point) = ((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32);
-    'running: loop {
-        if Snake::is_break(&snake_game.snake) {
-            snake_game.game_over();
-        }
-        handle_events(&mut event_pump, &mut quit, &mut snake_game, rng, &mut canvas);
-        if quit {
-            snake_game.game_over();
-            info!("Game over.\n Your points:{}", snake_game.get_points());
-            std::thread::sleep(Duration::from_secs(1));
-            break;
-        }
+        let mut event_pump = sdl_context.event_pump().expect("Failed to get SDL event pump");
+        let mut counter_loop: u16 = 0;
+        let mut quit = false;
 
-        if !snake_game.snake.is_pause() {
-            counter_loop += 1;
-        }
+        let (start_x_point, start_y_point) = ((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32);
+        loop {
+            if Snake::is_break(&snake_game.snake) {
+                snake_game.game_over();
+            }
+            handle_events(&mut event_pump, &mut quit, &mut snake_game, rng, &mut canvas);
+            if quit {
+                snake_game.game_over();
+                info!("Game over.\n Your points:{}", snake_game.get_points());
+                std::thread::sleep(Duration::from_secs(1));
+                break;
+            }
+
+            if !snake_game.snake.is_pause() {
+                counter_loop += 1;
+            }
 
 
-        if counter_loop % FPS == 0 {
-            debug!("{:?}", &snake_game);
-        }
-        if counter_loop >= 60 * 8 {
-            info!("counter: {}",counter_loop);
-            snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
-            counter_loop = 0;
-        }
-
-        if counter_loop % (11_u16 - (snake_game.speed as u16)) * FPS / 60 == 0 && snake_game.is_started {
-            if snake_game.snake.consume_another_cube(&snake_game.point_position) {
+            if counter_loop % FPS == 0 {
+                debug!("{:?}", &snake_game);
+            }
+            if counter_loop >= 60 * 8 {
+                info!("counter: {}", counter_loop);
                 snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
-                snake_game.add_points(1); //умножается на скорость
-                info!("Current points:{}", snake_game.get_points());
-                snake_game.snake.grow_up();
-                snake_game.speed_up();
-                info!("Current speed:{}", snake_game.speed);
                 counter_loop = 0;
             }
-            snake_game.snake.move_in_direction();
-            debug!("current snake position: {:?}", snake_game.snake.get_position());
-        }
 
-        // We draw it.
-        canvas.clear();
-        canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
-        canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
-
-        if snake_game.is_started {
-            canvas.copy(&point_texture, None, Rect::new(snake_game.point_position.get_position().0 * (BASE_SIZE as i32) + grid_left as i32, snake_game.point_position.get_position().1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-        }
-
-        for snake_body in snake_game.snake.get_position().iter().skip(1) {
-            canvas.copy(&body_texture, None, Rect::new(snake_body.0 * (BASE_SIZE as i32) + grid_left as i32, snake_body.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-        }
-        let snake_head = snake_game.snake.get_position().iter().take(1).next().unwrap();
-        match snake_game.snake.direction() {
-            Direction::Left => {
-                canvas.copy(&left_head, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-                last_state = &left_head;
+            if counter_loop % (11_u16 - u16::from(snake_game.speed)) * FPS / 60 == 0 && snake_game.is_started {
+                if snake_game.snake.consume_another_cube(&snake_game.point_position) {
+                    snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
+                    snake_game.add_points(1); //умножается на скорость
+                    info!("Current points:{}", snake_game.get_points());
+                    snake_game.snake.grow_up();
+                    snake_game.speed_up();
+                    info!("Current speed:{}", snake_game.speed);
+                    counter_loop = 0;
+                }
+                snake_game.snake.move_in_direction();
+                debug!("current snake position: {:?}", snake_game.snake.get_position());
             }
-            Direction::Top => {
-                canvas.copy(&top_head, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-                last_state = &top_head;
-            }
-            Direction::Bot => {
-                canvas.copy(&bot_head, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-                last_state = &bot_head;
-            }
-            Direction::Right => {
-                canvas.copy(&right_head, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap();
-                last_state = &right_head;
-            }
-            Direction::NotMove => canvas.copy(last_state, None, Rect::new(snake_head.0 * (BASE_SIZE as i32) + grid_left as i32, snake_head.1 * (BASE_SIZE as i32) + grid_top as i32, BASE_SIZE, BASE_SIZE)).unwrap(),
+
+            // We draw it.
+            canvas.clear();
+            canvas.copy(&border, None, Rect::new((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32, L_SIZE + BASE_SIZE * FIELD, BORDER_HEIGHT)).unwrap();
+            canvas.copy(&grid, None, Rect::new(L_SIZE as i32, (HEIGHT - (L_SIZE + BASE_SIZE * FIELD)) as i32, BASE_SIZE * FIELD, BASE_SIZE * FIELD)).unwrap();
+
+            render_snake(&snake_game, &mut canvas, BASE_SIZE, grid_left as i32, grid_top as i32, &snake_textures);
+
+            display_game_information(&snake_game, &mut canvas, &creator, &font, start_x_point, start_y_point as i32);
+
+            canvas.present();
+            //60 FPS
+            sleep(Duration::new(0, 1_000_000_000u32 / u32::from(FPS)));
         }
-
-        display_game_information(&snake_game, &mut canvas, &creator, &font, start_x_point, start_y_point as i32);
-
-        canvas.present();
-        //60 FPS
-        sleep(Duration::new(0, 1_000_000_000u32 / (FPS as u32)));
     }
 }
 
