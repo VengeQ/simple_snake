@@ -8,7 +8,7 @@ appenders:
     encoder:
       pattern: "{l:<5.6}:{d(%Y-%m-%d %H:%M:%S %Z)(utc)} - {m}{n}"
 root:
-  level: info
+  level: warn
   appenders:
     - stdout
 loggers:
