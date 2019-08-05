@@ -3,7 +3,6 @@ use crate::moving::Moving;
 
 use std::collections::vec_deque::VecDeque;
 
-
 #[derive(Debug)]
 pub struct Snake {
     curr_direction: Direction,

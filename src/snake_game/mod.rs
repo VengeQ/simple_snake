@@ -3,10 +3,12 @@ use rand::rngs::ThreadRng;
 
 pub mod snake;
 pub mod square;
+pub mod moving;
+pub mod scores;
 
 use square::Square;
 use snake::Snake;
-use crate::helpers::random_position_in_grid_exclusive;
+use crate::textures::random_position_in_grid_exclusive;
 
 macro_rules! vec_deq {
     ($($x:expr),*) =>{
