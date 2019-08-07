@@ -18,27 +18,27 @@ pub enum TextureColor {
     Red,
     Black,
     White,
-    Grey
+    Grey,
 }
 
-pub struct SnakeTextures<'a>{
-    body_texture:  Texture<'a>,
-    left_head:  Texture<'a>,
-    right_head:  Texture<'a>,
-    bot_head:  Texture<'a>,
-    top_head:  Texture<'a>,
-    point_texture:  Texture<'a>,
+pub struct SnakeTextures<'a> {
+    body_texture: Texture<'a>,
+    left_head: Texture<'a>,
+    right_head: Texture<'a>,
+    bot_head: Texture<'a>,
+    top_head: Texture<'a>,
+    point_texture: Texture<'a>,
 }
 
 impl<'a> SnakeTextures<'a> {
-    pub fn from_base_size(base_size:u32, creator: &'a TextureCreator<WindowContext>) -> Self{
+    pub fn from_base_size(base_size: u32, creator: &'a TextureCreator<WindowContext>) -> Self {
         SnakeTextures {
             body_texture: body(&creator, base_size, base_size),
             left_head: head_with_eyes(&creator, Direction::Left, base_size, base_size),
-            right_head:  head_with_eyes(&creator, Direction::Right, base_size, base_size),
+            right_head: head_with_eyes(&creator, Direction::Right, base_size, base_size),
             bot_head: head_with_eyes(&creator, Direction::Bot, base_size, base_size),
             top_head: head_with_eyes(&creator, Direction::Top, base_size, base_size),
-            point_texture:point_texture(&creator, base_size, base_size),
+            point_texture: point_texture(&creator, base_size, base_size),
 
         }
     }
@@ -103,7 +103,7 @@ pub fn point_texture(creator: &TextureCreator<WindowContext>, width: u32, height
 
 ///Display Game info. start_x_point, start_y_point - position relative (0,0).
 pub fn display_game_information<'a>(snake_game: &crate::SnakeGame, canvas: &mut Canvas<Window>,
-                                    texture_creator: &'a TextureCreator<WindowContext>, scores:&str,
+                                    texture_creator: &'a TextureCreator<WindowContext>, scores: &str,
                                     font: &sdl2::ttf::Font,
                                     start_x_point: i32, start_y_point: i32) {
     let points_text = &format!("Score:{}", snake_game.points)[..];
@@ -111,7 +111,7 @@ pub fn display_game_information<'a>(snake_game: &crate::SnakeGame, canvas: &mut 
     let await_new_game_text = "Click LKM for new game";
     let game_over_text = &format!("Game over! Your points: {}", snake_game.points)[..];
     let start_new_game_text = "Press space for start!";
-    let record_scores_1 ="Current record: ";
+    let record_scores_1 = "Current record: ";
 
 
     let points_texture = create_texture_from_text(texture_creator, font, points_text, 100, 100, 100).expect("Can't create points_texture");
@@ -131,14 +131,13 @@ pub fn display_game_information<'a>(snake_game: &crate::SnakeGame, canvas: &mut 
         canvas.copy(&points_texture, None, get_rect_from_text(points_text, start_x_point, start_y_point)).expect("Can't render texture");
         canvas.copy(&current_speed_texture, None, get_rect_from_text(current_speed_text, start_x_point, start_y_point + font.height())).expect("Can't render texture");
     }
-    canvas.copy(&record_scores_1_textures, None, get_rect_from_text(record_scores_1, start_x_point, start_y_point + font.height()*2)).expect("Can't render texture");
-    canvas.copy(&record_scores_2_textures, None, get_rect_from_text(scores, start_x_point + (record_scores_1.len() as i32)* 14, start_y_point + font.height()*2)).expect("Can't render texture");
-
+    canvas.copy(&record_scores_1_textures, None, get_rect_from_text(record_scores_1, start_x_point, start_y_point + font.height() * 2)).expect("Can't render texture");
+    canvas.copy(&record_scores_2_textures, None, get_rect_from_text(scores, start_x_point + (record_scores_1.len() as i32) * 14, start_y_point + font.height() * 2)).expect("Can't render texture");
 }
 
 ///Function for display current snake state in grid
 pub fn render_snake<'a>(snake_game: &crate::SnakeGame, canvas: &mut Canvas<Window>, base_size: u32,
-                        start_x_point: i32, start_y_point: i32, snake_textures:&'a SnakeTextures<'a>) {
+                        start_x_point: i32, start_y_point: i32, snake_textures: &'a SnakeTextures<'a>) {
     let base_size_i32 = base_size as i32;
     if snake_game.is_started {
         canvas.copy(&snake_textures.point_texture, None, Rect::new(snake_game.point_position.get_position().0 * base_size_i32 + start_x_point, snake_game.point_position.get_position().1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap();
@@ -147,17 +146,18 @@ pub fn render_snake<'a>(snake_game: &crate::SnakeGame, canvas: &mut Canvas<Windo
         canvas.copy(&snake_textures.body_texture, None, Rect::new(snake_body.0 * base_size_i32 + start_x_point, snake_body.1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap();
     }
     let snake_head = snake_game.snake.get_position().iter().take(1).next().unwrap();
+    let head_rectangle = Rect::new(snake_head.0 * base_size_i32 + start_x_point, snake_head.1 * base_size_i32 + start_y_point, base_size, base_size);
     match snake_game.snake.direction() {
         Direction::Left =>
-            canvas.copy(&snake_textures.left_head, None, Rect::new(snake_head.0 * base_size_i32 + start_x_point, snake_head.1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap(),
+            canvas.copy(&snake_textures.left_head, None, head_rectangle).unwrap(),
         Direction::Top =>
-            canvas.copy(&snake_textures.top_head, None, Rect::new(snake_head.0 * base_size_i32 + start_x_point, snake_head.1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap(),
+            canvas.copy(&snake_textures.top_head, None, head_rectangle).unwrap(),
         Direction::Bot =>
-            canvas.copy(&snake_textures.bot_head, None, Rect::new(snake_head.0 * base_size_i32 + start_x_point, snake_head.1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap(),
+            canvas.copy(&snake_textures.bot_head, None, head_rectangle).unwrap(),
         Direction::Right =>
-            canvas.copy(&snake_textures.right_head, None, Rect::new(snake_head.0 * base_size_i32 + start_x_point, snake_head.1 * base_size_i32 + start_y_point, base_size, base_size)).unwrap(),
-        Direction::NotMove =>{
-            let head_wait = match &snake_game.snake.prev_direction(){
+            canvas.copy(&snake_textures.right_head, None, head_rectangle).unwrap(),
+        Direction::NotMove => {
+            let head_wait = match &snake_game.snake.prev_direction() {
                 Direction::Right => &snake_textures.right_head,
                 Direction::Left => &snake_textures.left_head,
                 Direction::Top => &snake_textures.top_head,
@@ -205,9 +205,8 @@ fn body(creator: &TextureCreator<WindowContext>, width: u32, height: u32) -> Tex
 }
 
 
-
 fn get_rect_from_text(text: &str, x: i32, y: i32) -> Option<Rect> {
-    info!("text {} have length: {}", text, text.len());
+    debug!("text {} have length: {}", text, text.len());
     Some(Rect::new(x, y, text.len() as u32 * 14, 32))
 }
 
@@ -253,9 +252,10 @@ fn turn_head(texture: &mut Texture, direction: Direction) {
 
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use std::collections::VecDeque;
     use sdl2::pixels::Color;
+
     #[test]
     fn rand_color_test_smoke() {
         let rng = rand::thread_rng();
@@ -264,6 +264,7 @@ mod tests{
             color_rgb = crate::rand_color(rng).rgb();
         }
     }
+
     #[test]
     fn random_position_in_grid_exclusive_test() {
         let base_size = 10_u32;
@@ -274,5 +275,39 @@ mod tests{
         deque.push_front((0, 0));
         deque.push_front((1, 0));
         assert_eq!(crate::random_position_in_grid_exclusive(rng, &deque, field), (1, 1))
+    }
+}
+
+pub struct ControlPanel<'a> {
+    add_position: (u32, u32),
+    sub_position: (u32, u32),
+    add_texture: Texture<'a>,
+    sub_texture: Texture<'a>,
+}
+
+impl<'a> ControlPanel<'a> {
+    pub fn base_panel(creator: &'a TextureCreator<WindowContext>,
+                      font: &sdl2::ttf::Font, start: (u32, u32), step: u32) -> Self {
+        let add_position = start;
+        let sub_position = (start.0 + step, start.1);
+        let add_texture = create_texture_from_text(creator, &font, "+", 100, 100, 100).expect("Can't create +");
+        let sub_texture = create_texture_from_text(creator, &font, "-", 100, 100, 100).expect("Can't create -");
+        ControlPanel {
+            add_position,
+            sub_position,
+            add_texture,
+            sub_texture,
+        }
+    }
+
+    pub fn render_panel(&self, canvas: &mut Canvas<Window>) {
+        canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`"));
+        canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`"));
+    }
+    pub fn get_sub_position(&self) -> (u32, u32) {
+        self.sub_position
+    }
+    pub fn get_add_position(&self) -> (u32, u32) {
+        self.add_position
     }
 }
