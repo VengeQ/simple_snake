@@ -156,6 +156,7 @@ pub fn render_snake<'a>(snake_game: &crate::SnakeGame, canvas: &mut Canvas<Windo
             canvas.copy(&snake_textures.bot_head, None, head_rectangle).unwrap(),
         Direction::Right =>
             canvas.copy(&snake_textures.right_head, None, head_rectangle).unwrap(),
+
         Direction::NotMove => {
             let head_wait = match &snake_game.snake.prev_direction() {
                 Direction::Right => &snake_textures.right_head,
@@ -297,6 +298,7 @@ impl<'a> ControlPanel<'a> {
             sub_position,
             add_texture,
             sub_texture,
+
         }
     }
 
@@ -304,6 +306,7 @@ impl<'a> ControlPanel<'a> {
         canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`"));
         canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`"));
     }
+
     pub fn get_sub_position(&self) -> (u32, u32) {
         self.sub_position
     }
