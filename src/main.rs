@@ -4,7 +4,6 @@
 extern crate log;
 extern crate log4rs;
 extern crate sdl2;
-extern crate mandelbrot;
 
 mod snake_game;
 mod textures;
@@ -45,12 +44,13 @@ const FPS: u16 = 120;
 const FONT_TEXTURE_SIZE: u32 = 32;
 
 pub fn main() {
-    mandelbrot::do_something();
+
     //логирую только в девелопе
     if log4rs::init_file("config/log4rs.yaml", Default::default()).is_ok() {};
     info!("Logger is ready");
 
     let mut scores = current_high_scores("scores/scores.txt");
+
     let scores_as_int: i32 = scores.parse().unwrap();
 
     let ttf_context = sdl2::ttf::init().expect("Could not load ttf context");
@@ -192,15 +192,13 @@ fn handle_events(event_pump: &mut EventPump, quit: &mut bool, snake_game: &mut S
                         if x_mouse > sub_position.0 as i32 && x_mouse < (sub_position.0 + FONT_TEXTURE_SIZE) as i32 {
                             info!("Sub clicked");
                         }
+                        if snake_game.is_over {
+                            snake_game.new_game(FIELD, rng);
+                            snake_game.snake.unpause();
+                        }
                     }
                 }
-
-                if snake_game.is_over {
-                    snake_game.new_game(FIELD, rng);
-                    snake_game.snake.unpause();
-                }
             }
-
             _ => {}
         }
     }
