@@ -303,8 +303,8 @@ impl<'a> ControlPanel<'a> {
     }
 
     pub fn render_panel(&self, canvas: &mut Canvas<Window>) {
-        canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`"));
-        canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`"));
+        canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`")).unwrap();
+        canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`")).unwrap();
     }
 
     pub fn get_sub_position(&self) -> (u32, u32) {

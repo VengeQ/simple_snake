@@ -19,7 +19,7 @@ use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::thread::sleep;
 use sdl2::mouse::MouseButton;
-use sdl2::render::{TextureCreator, Canvas, Texture};
+use sdl2::render::{TextureCreator, Canvas};
 use sdl2::rect::Rect;
 use snake::Snake;
 use square::Square;
@@ -85,12 +85,7 @@ pub fn main() {
 
     let (text_x_point, text_y_point) = ((L_SIZE / 2) as i32, (HEIGHT - BORDER_HEIGHT - L_SIZE / 2) as i32);
     loop {
-        if Snake::is_break(&snake_game.snake) {
-            info!("Game over.\n Your points:{}", snake_game.get_points());
-            update_high_scores("scores/scores.txt", &scores);
-            snake_game.game_over();
-            counter_loop = 0;
-        }
+
         handle_events(&mut event_pump, &mut quit, &mut snake_game, rng, &mut canvas, &mut panel);
         if quit {
             snake_game.game_over();
@@ -113,6 +108,8 @@ pub fn main() {
             counter_loop = 0;
         }
 
+
+        //движение змейки
         if counter_loop % (11_u16 - u16::from(snake_game.speed)) * FPS / 60 == 0 && snake_game.is_started {
             if snake_game.snake.consume_another_cube(&snake_game.point_position) {
                 snake_game.point_position.set_position(random_position_in_grid_exclusive(rng, snake_game.snake.get_position(), FIELD));
@@ -128,6 +125,12 @@ pub fn main() {
                 counter_loop = 0;
             }
             snake_game.snake.move_in_direction();
+            if Snake::is_break(&snake_game.snake) {
+                info!("Game over.\n Your points:{}", snake_game.get_points());
+                update_high_scores("scores/scores.txt", &scores);
+                snake_game.game_over();
+                counter_loop = 0;
+            }
             debug!("current snake position: {:?}", snake_game.snake.get_position());
         }
 
@@ -192,11 +195,11 @@ fn handle_events(event_pump: &mut EventPump, quit: &mut bool, snake_game: &mut S
                         if x_mouse > sub_position.0 as i32 && x_mouse < (sub_position.0 + FONT_TEXTURE_SIZE) as i32 {
                             info!("Sub clicked");
                         }
-                        if snake_game.is_over {
-                            snake_game.new_game(FIELD, rng);
-                            snake_game.snake.unpause();
-                        }
                     }
+                }
+                if snake_game.is_over {
+                    snake_game.new_game(FIELD, rng);
+                    snake_game.snake.unpause();
                 }
             }
             _ => {}
