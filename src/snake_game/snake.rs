@@ -158,7 +158,6 @@ mod tests {
     fn impl_snake_test() {
         let deque: VecDeque<(i32, i32)> = (vec![(0, 0), (0, 1)].iter().map(|x| *x)).collect();
         let test_snake = Snake::from_position(deque.clone());
-
         assert_eq!(test_snake.position, deque);
     }
 

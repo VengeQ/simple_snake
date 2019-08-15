@@ -251,6 +251,41 @@ fn turn_head(texture: &mut Texture, direction: Direction) {
     }).unwrap();
 }
 
+pub struct ControlPanel<'a> {
+    add_position: (u32, u32),
+    sub_position: (u32, u32),
+    add_texture: Texture<'a>,
+    sub_texture: Texture<'a>,
+}
+
+impl<'a> ControlPanel<'a> {
+    pub fn base_panel(creator: &'a TextureCreator<WindowContext>,
+                      font: &sdl2::ttf::Font, start: (u32, u32), step: u32) -> Self {
+        let add_position = start;
+        let sub_position = (start.0 + step, start.1);
+        let add_texture = create_texture_from_text(creator, &font, "+", 100, 100, 100).expect("Can't create +");
+        let sub_texture = create_texture_from_text(creator, &font, "-", 100, 100, 100).expect("Can't create -");
+        ControlPanel {
+            add_position,
+            sub_position,
+            add_texture,
+            sub_texture,
+        }
+    }
+
+    pub fn render_panel(&self, canvas: &mut Canvas<Window>) {
+        canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`")).unwrap();
+        canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`")).unwrap();
+    }
+
+    pub fn get_sub_position(&self) -> (u32, u32) {
+        self.sub_position
+    }
+    pub fn get_add_position(&self) -> (u32, u32) {
+        self.add_position
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -276,41 +311,5 @@ mod tests {
         deque.push_front((0, 0));
         deque.push_front((1, 0));
         assert_eq!(crate::random_position_in_grid_exclusive(rng, &deque, field), (1, 1))
-    }
-}
-
-pub struct ControlPanel<'a> {
-    add_position: (u32, u32),
-    sub_position: (u32, u32),
-    add_texture: Texture<'a>,
-    sub_texture: Texture<'a>,
-}
-
-impl<'a> ControlPanel<'a> {
-    pub fn base_panel(creator: &'a TextureCreator<WindowContext>,
-                      font: &sdl2::ttf::Font, start: (u32, u32), step: u32) -> Self {
-        let add_position = start;
-        let sub_position = (start.0 + step, start.1);
-        let add_texture = create_texture_from_text(creator, &font, "+", 100, 100, 100).expect("Can't create +");
-        let sub_texture = create_texture_from_text(creator, &font, "-", 100, 100, 100).expect("Can't create -");
-        ControlPanel {
-            add_position,
-            sub_position,
-            add_texture,
-            sub_texture,
-
-        }
-    }
-
-    pub fn render_panel(&self, canvas: &mut Canvas<Window>) {
-        canvas.copy(&self.add_texture, None, get_rect_from_text("+", self.add_position.0 as i32, self.add_position.1 as i32).expect("Can't render texture `+`")).unwrap();
-        canvas.copy(&self.sub_texture, None, get_rect_from_text("-", self.sub_position.0 as i32, self.sub_position.1 as i32).expect("Can't render texture `-`")).unwrap();
-    }
-
-    pub fn get_sub_position(&self) -> (u32, u32) {
-        self.sub_position
-    }
-    pub fn get_add_position(&self) -> (u32, u32) {
-        self.add_position
     }
 }
